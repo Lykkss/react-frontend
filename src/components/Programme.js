@@ -10,20 +10,20 @@ const Programme = () => {
     useEffect(() => {
         const fetchEvents = async () => {
             try {
-                const API_URL = `https://api.allorigins.win/get?url=${encodeURIComponent("http://projet-live-event.infinityfreeapp.com/wp-json/tribe/events/v1/events")}`;
-                
+                const API_URL = "/api/events"; // On utilise maintenant le proxy sur Vercel
                 const response = await fetch(API_URL);
                 if (!response.ok) {
-                    throw new Error('Erreur de chargement des événements');
+                    throw new Error("Erreur de chargement des événements");
                 }
                 const data = await response.json();
-                setEvents(JSON.parse(data.contents).events);
+                setEvents(data.events);
             } catch (err) {
                 setError(err.message);
             } finally {
                 setLoading(false);
             }
-        };        
+        };
+            
      
 
         fetchEvents();
