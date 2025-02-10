@@ -1,0 +1,9 @@
+{
+    "rewrites": [
+      {
+        "source": "/api/events",
+        "destination": "http://projet-live-event.infinityfreeapp.com/wp-json/tribe/events/v1/events"
+      }
+    ]
+  }
+  

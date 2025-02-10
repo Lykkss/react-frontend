@@ -1,4 +1,3 @@
-// src/components/Programme.js
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 
@@ -10,21 +9,21 @@ const Programme = () => {
     useEffect(() => {
         const fetchEvents = async () => {
             try {
-                const API_URL = "https://cors-anywhere.herokuapp.com/http://projet-live-event.infinityfreeapp.com/wp-json/tribe/events/v1/events";
+                // Utilisation du proxy Vercel pour éviter Mixed Content
+                const API_URL = "/api/events"; 
 
                 const response = await fetch(API_URL);
                 if (!response.ok) {
-                    throw new Error('Erreur de chargement des événements');
+                    throw new Error("Erreur de chargement des événements");
                 }
                 const data = await response.json();
-                setEvents(JSON.parse(data.contents).events);
+                setEvents(data.events);
             } catch (err) {
                 setError(err.message);
             } finally {
                 setLoading(false);
             }
-        };        
-     
+        };
 
         fetchEvents();
     }, []);
