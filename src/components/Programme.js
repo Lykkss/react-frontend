@@ -16,6 +16,7 @@ const Programme = () => {
                 if (!response.ok) {
                     throw new Error("Erreur de chargement des événements");
                 }
+
                 const data = await response.json();
                 setEvents(data.events);
             } catch (err) {
