@@ -10,8 +10,9 @@ const Programme = () => {
     useEffect(() => {
         const fetchEvents = async () => {
             try {
-               
-                const response = await fetch('http://projet-live-event.infinityfreeapp.com/wp-json/tribe/events/v1/events');
+                const API_URL = "https://cors-anywhere.herokuapp.com/http://projet-live-event.infinityfreeapp.com/wp-json/tribe/events/v1/events";
+                
+                const response = await fetch(API_URL);
                 if (!response.ok) {
                     throw new Error('Erreur de chargement des événements');
                 }
@@ -23,6 +24,7 @@ const Programme = () => {
                 setLoading(false);
             }
         };
+        
 
         fetchEvents();
     }, []);
