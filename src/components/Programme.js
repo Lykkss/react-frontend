@@ -6,21 +6,20 @@ const Programme = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    useEffect(() => {
-        const fetchEvents = async () => {
-            try {
-                const response = await fetch("/api/events"); // 🔥 Utilisation du proxy
-                if (!response.ok) {
-                    throw new Error("Erreur de chargement des événements");
-                }
-                const data = await response.json();
-                setEvents(data.events);
-            } catch (err) {
-                setError(err.message);
-            } finally {
-                setLoading(false);
-            }
-        };
+     useEffect(() => {
+        const API_URL = "https://cors-anywhere.herokuapp.com/http://projet-live-event.infinityfreeapp.com/wp-json/tribe/events/v1/events";
+    
+        useEffect(() => {
+          axios.get(API_URL)
+            .then((response) => {
+              const eventsData = response.data.events;
+              setEvents(eventsData);
+            })
+            .catch((error) => {
+              console.error("Erreur lors de la récupération des événements", error);
+            });
+        }, []);
+    
 
         fetchEvents();
     }, []);
