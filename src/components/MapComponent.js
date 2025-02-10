@@ -16,15 +16,19 @@ const MapWithCheckboxes = () => {
 
   // Charger les événements depuis l'API WordPress
   useEffect(() => {
-    axios
-      .get("http://projet-live-event.infinityfreeapp.com/wp-json/tribe/events/v1/events")
-      .then((response) => {
-        const eventsData = response.data.events;
-        setEvents(eventsData);
-      })
-      .catch((error) => {
-        console.error("Erreur lors de la récupération des événements", error);
-      });
+    const API_URL = "https://cors-anywhere.herokuapp.com/http://projet-live-event.infinityfreeapp.com/wp-json/tribe/events/v1/events";
+
+    useEffect(() => {
+      axios.get(API_URL)
+        .then((response) => {
+          const eventsData = response.data.events;
+          setEvents(eventsData);
+        })
+        .catch((error) => {
+          console.error("Erreur lors de la récupération des événements", error);
+        });
+    }, []);
+    
   }, []);
 
   // Localiser l'utilisateur
