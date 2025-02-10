@@ -9,14 +9,10 @@ const Programme = () => {
     useEffect(() => {
         const fetchEvents = async () => {
             try {
-                // Utilisation du proxy Vercel pour éviter Mixed Content
-                const API_URL = "/api/events"; 
-
-                const response = await fetch(API_URL);
+                const response = await fetch("/api/events"); // 🔥 Utilisation du proxy
                 if (!response.ok) {
                     throw new Error("Erreur de chargement des événements");
                 }
-
                 const data = await response.json();
                 setEvents(data.events);
             } catch (err) {
