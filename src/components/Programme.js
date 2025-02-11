@@ -7,23 +7,23 @@ const Programme = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    const fetchEvents = async () => {
-      try {
-        const response = await axios.get(
-          "https://projet-live-event.infinityfreeapp.com/wp-json/tribe/events/v1/events"
-        );
-        setEvents(response.data.events); // Met à jour les événements
-      } catch (err) {
-        setError("Erreur lors de la récupération des événements");
-        console.error(err);
-      } finally {
-        setLoading(false); // Désactive le chargement
-      }
-    };
+  const API_URL = "/api/proxy"; // Utilisation du proxy au lieu d'InfinityFree
 
-    fetchEvents();
-  }, []);
+useEffect(() => {
+  const fetchEvents = async () => {
+    try {
+      const response = await axios.get(API_URL);
+      setEvents(response.data.events);
+    } catch (err) {
+      setError("Erreur lors de la récupération des événements");
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchEvents();
+}, []);
 
   if (loading) return <p>Chargement des événements...</p>;
   if (error) return <p className="text-red-500">{error}</p>;
