@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 
 const Programme = () => {
     const [events, setEvents] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
      useEffect(() => {
         const API_URL = "https://cors-anywhere.herokuapp.com/http://projet-live-event.infinityfreeapp.com/wp-json/tribe/events/v1/events";
