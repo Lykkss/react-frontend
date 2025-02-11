@@ -3,6 +3,8 @@ import { Map, APIProvider, Marker, InfoWindow } from "@vis.gl/react-google-maps"
 import axios from "axios";
 
 const GOOGLE_MAPS_API_KEY = "AIzaSyBQo5nxo05_KSMmN3lbJNyAaRoZ0zgUNac";
+const API_URL = "https://cors-anywhere.herokuapp.com/http://projet-live-event.infinityfreeapp.com/wp-json/tribe/events/v1/events";
+
 const parisCoordinates = { lat: 48.8566, lng: 2.3522 };
 
 const MapWithCheckboxes = () => {
@@ -13,22 +15,20 @@ const MapWithCheckboxes = () => {
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [userLocation, setUserLocation] = useState(null);
   const [directionsRenderer, setDirectionsRenderer] = useState(null);
+  const [mapInstance, setMapInstance] = useState(null);
 
   // Charger les événements depuis l'API WordPress
   useEffect(() => {
-    const API_URL = "https://cors-anywhere.herokuapp.com/http://projet-live-event.infinityfreeapp.com/wp-json/tribe/events/v1/events";
+    const fetchEvents = async () => {
+      try {
+        const response = await axios.get(API_URL);
+        setEvents(response.data.events || []);
+      } catch (error) {
+        console.error("Erreur lors de la récupération des événements", error);
+      }
+    };
 
-    useEffect(() => {
-      axios.get(API_URL)
-        .then((response) => {
-          const eventsData = response.data.events;
-          setEvents(eventsData);
-        })
-        .catch((error) => {
-          console.error("Erreur lors de la récupération des événements", error);
-        });
-    }, []);
-    
+    fetchEvents();
   }, []);
 
   // Localiser l'utilisateur
@@ -62,10 +62,10 @@ const MapWithCheckboxes = () => {
 
   // Afficher les directions
   const calculateRoute = (destination) => {
-    if (userLocation && destination) {
+    if (userLocation && destination && mapInstance) {
       const directionsService = new window.google.maps.DirectionsService();
       const renderer = new window.google.maps.DirectionsRenderer();
-      renderer.setMap(window.mapInstance);
+      renderer.setMap(mapInstance);
 
       directionsService.route(
         {
@@ -132,9 +132,7 @@ const MapWithCheckboxes = () => {
             mapContainerStyle={{ height: "100%", width: "100%" }}
             zoom={13}
             center={userLocation || parisCoordinates}
-            onLoad={(map) => {
-              window.mapInstance = map;
-            }}
+            onLoad={(map) => setMapInstance(map)}
           >
             {/* Toilettes */}
             {showToilettes && (
