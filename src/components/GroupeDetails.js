@@ -12,7 +12,7 @@ const GroupeDetails = () => {
     useEffect(() => {
         const fetchGroupDetails = async () => {
             try {
-                const response = await fetch(`http://projet-live-event.infinityfreeapp.com/wp-json/tribe/events/v1/events${id}`);
+                const response = await fetch(`https://projet-live-event.infinityfreeapp.com/wp-json/tribe/events/v1/events${id}`);
                 if (!response.ok) {
                     throw new Error('Erreur de chargement des détails du groupe');
                 }

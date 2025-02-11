@@ -11,7 +11,7 @@ const Programme = () => {
     const fetchEvents = async () => {
       try {
         const response = await axios.get(
-          "https://cors-anywhere.herokuapp.com/http://projet-live-event.infinityfreeapp.com/wp-json/tribe/events/v1/events"
+          "https://projet-live-event.infinityfreeapp.com/wp-json/tribe/events/v1/events"
         );
         setEvents(response.data.events); // Met à jour les événements
       } catch (err) {

@@ -3,7 +3,7 @@ import { Map, APIProvider, Marker, InfoWindow } from "@vis.gl/react-google-maps"
 import axios from "axios";
 
 const GOOGLE_MAPS_API_KEY = "AIzaSyBQo5nxo05_KSMmN3lbJNyAaRoZ0zgUNac";
-const API_URL = "https://cors-anywhere.herokuapp.com/http://projet-live-event.infinityfreeapp.com/wp-json/tribe/events/v1/events";
+const API_URL = "https://projet-live-event.infinityfreeapp.com/wp-json/tribe/events/v1/events";
 
 const parisCoordinates = { lat: 48.8566, lng: 2.3522 };
 
