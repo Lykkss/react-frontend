@@ -7,7 +7,7 @@ const Programme = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const API_URL = "/api/proxy"; // Utilisation du proxy au lieu d'InfinityFree
+  const API_URL = "/api/proxy"; // Utilisation du proxy Vercel
 
 useEffect(() => {
   const fetchEvents = async () => {
@@ -24,6 +24,7 @@ useEffect(() => {
 
   fetchEvents();
 }, []);
+
 
   if (loading) return <p>Chargement des événements...</p>;
   if (error) return <p className="text-red-500">{error}</p>;
