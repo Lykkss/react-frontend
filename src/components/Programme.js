@@ -14,13 +14,13 @@ const Programme = () => {
       console.log("Fetching events from API:", API_URL);
       try {
         const response = await axios.get(API_URL);
-        console.log("API Response:", response.data);
-
-        // Vérifie la présence de "events" et si c'est un tableau
+        console.log("API Raw Response:", response); // Log complet
+        console.log("API Data:", response.data); // Données reçues
+  
         if (response.data && Array.isArray(response.data.events)) {
           setEvents(response.data.events);
         } else {
-          console.error("Les données 'events' sont manquantes ou mal formatées.");
+          console.error("Les données 'events' sont manquantes ou mal formatées.", response.data);
           setError("Aucun événement trouvé ou format incorrect.");
         }
       } catch (err) {
@@ -30,9 +30,10 @@ const Programme = () => {
         setLoading(false);
       }
     };
-
+  
     fetchEvents();
   }, []);
+  
 
   // Gestion des états : chargement, erreur et affichage des données
   if (loading) return <p>Chargement des événements...</p>;
@@ -45,32 +46,21 @@ const Programme = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
           {events.map((event) => (
             <div key={event.id || Math.random()} className="bg-white shadow-md rounded-lg p-4">
-              <h2 className="text-xl font-semibold">
-                {event.title || "Titre non disponible"}
-              </h2>
+              <h2 className="text-xl font-semibold">{event.title || "Titre non disponible"}</h2>
               <p className="text-gray-600">
-                Date de début :{" "}
-                {event.start_date
-                  ? new Date(event.start_date).toLocaleString()
-                  : "Non spécifiée"}
+                Date de début : {event.start_date ? new Date(event.start_date).toLocaleString() : "Non spécifiée"}
               </p>
               <p className="text-gray-600">
-                Date de fin :{" "}
-                {event.end_date
-                  ? new Date(event.end_date).toLocaleString()
-                  : "Non spécifiée"}
+                Date de fin : {event.end_date ? new Date(event.end_date).toLocaleString() : "Non spécifiée"}
               </p>
-              <Link
-                to={`/groupe/${event.id}`}
-                className="mt-4 inline-block text-indigo-900 hover:underline"
-              >
+              <Link to={`/groupe/${event.id}`} className="mt-4 inline-block text-indigo-900 hover:underline">
                 Voir plus sur ce groupe
               </Link>
             </div>
           ))}
         </div>
       ) : (
-        <p>Aucun événement trouvé.</p>
+        <p>Aucun événement trouvé ou données incorrectes.</p>
       )}
     </div>
   );
