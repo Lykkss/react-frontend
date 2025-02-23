@@ -17,8 +17,9 @@ const Programme = () => {
         console.log("API Raw Response:", response);
         console.log("API Response Data:", response.data);
   
-        // Vérifie si la réponse est bien formatée
+        // Vérifie la présence et le type de 'events'
         if (response.data && Array.isArray(response.data.events)) {
+          console.log("Events loaded successfully:", response.data.events);
           setEvents(response.data.events);
         } else {
           console.error("Les données 'events' sont manquantes ou mal formatées.", response.data);
