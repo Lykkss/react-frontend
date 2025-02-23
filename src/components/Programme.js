@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import axios from "axios"; // Ajoute l'import d'axios
+import axios from "axios";
 
 const Programme = () => {
   const [events, setEvents] = useState([]);
@@ -9,22 +9,30 @@ const Programme = () => {
 
   const API_URL = "/api/proxy"; // Utilisation du proxy Vercel
 
-useEffect(() => {
-  const fetchEvents = async () => {
-    try {
-      const response = await axios.get(API_URL);
-      setEvents(response.data.events);
-    } catch (err) {
-      setError("Erreur lors de la récupération des événements");
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  useEffect(() => {
+    const fetchEvents = async () => {
+      console.log("Fetching events from API:", API_URL);
+      try {
+        const response = await axios.get(API_URL);
+        console.log("API Response:", response.data);
 
-  fetchEvents();
-}, []);
+        // Vérifie la présence de "events"
+        if (response.data && Array.isArray(response.data.events)) {
+          setEvents(response.data.events);
+        } else {
+          console.error("Les données 'events' sont manquantes ou mal formatées.");
+          setError("Aucun événement trouvé ou format incorrect.");
+        }
+      } catch (err) {
+        console.error("Erreur lors de la récupération des événements:", err);
+        setError("Erreur lors de la récupération des événements.");
+      } finally {
+        setLoading(false);
+      }
+    };
 
+    fetchEvents();
+  }, []);
 
   if (loading) return <p>Chargement des événements...</p>;
   if (error) return <p className="text-red-500">{error}</p>;
@@ -32,7 +40,7 @@ useEffect(() => {
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-3xl font-bold sm:text-4xl text-center mb-8">Programme</h1>
-      {events.length > 0 ? (
+      {Array.isArray(events) && events.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
           {events.map((event) => (
             <div key={event.id} className="bg-white shadow-md rounded-lg p-4">
