@@ -14,12 +14,12 @@ const Programme = () => {
       console.log("Fetching events from API:", API_URL);
       try {
         const response = await axios.get(API_URL);
-        console.log("API Response:", response.data);
-
-        // Vérification robuste des données reçues
-        const eventsData = response.data?.events;
-        if (Array.isArray(eventsData)) {
-          setEvents(eventsData);
+        console.log("API Raw Response:", response);
+        console.log("API Response Data:", response.data);
+  
+        // Vérifie si la réponse est bien formatée
+        if (response.data && Array.isArray(response.data.events)) {
+          setEvents(response.data.events);
         } else {
           console.error("Les données 'events' sont manquantes ou mal formatées.", response.data);
           setError("Aucun événement trouvé ou format incorrect.");
@@ -31,9 +31,9 @@ const Programme = () => {
         setLoading(false);
       }
     };
-
+  
     fetchEvents();
-  }, [API_URL]);
+  }, []);  
 
   // Gestion des états : chargement, erreur et affichage des données
   if (loading) return <p>Chargement des événements...</p>;
