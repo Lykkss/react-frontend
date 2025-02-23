@@ -16,7 +16,7 @@ const Programme = () => {
         const response = await axios.get(API_URL);
         console.log("API Response:", response.data);
 
-        // Vérifie la présence de "events"
+        // Vérifie la présence de "events" et si c'est un tableau
         if (response.data && Array.isArray(response.data.events)) {
           setEvents(response.data.events);
         } else {
@@ -34,6 +34,7 @@ const Programme = () => {
     fetchEvents();
   }, []);
 
+  // Gestion des états : chargement, erreur et affichage des données
   if (loading) return <p>Chargement des événements...</p>;
   if (error) return <p className="text-red-500">{error}</p>;
 
@@ -43,13 +44,21 @@ const Programme = () => {
       {Array.isArray(events) && events.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
           {events.map((event) => (
-            <div key={event.id} className="bg-white shadow-md rounded-lg p-4">
-              <h2 className="text-xl font-semibold">{event.title}</h2>
+            <div key={event.id || Math.random()} className="bg-white shadow-md rounded-lg p-4">
+              <h2 className="text-xl font-semibold">
+                {event.title || "Titre non disponible"}
+              </h2>
               <p className="text-gray-600">
-                Date de début : {new Date(event.start_date).toLocaleString()}
+                Date de début :{" "}
+                {event.start_date
+                  ? new Date(event.start_date).toLocaleString()
+                  : "Non spécifiée"}
               </p>
               <p className="text-gray-600">
-                Date de fin : {new Date(event.end_date).toLocaleString()}
+                Date de fin :{" "}
+                {event.end_date
+                  ? new Date(event.end_date).toLocaleString()
+                  : "Non spécifiée"}
               </p>
               <Link
                 to={`/groupe/${event.id}`}
