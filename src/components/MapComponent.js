@@ -2,8 +2,9 @@ import React, { useState, useEffect } from "react";
 import { Map, APIProvider, Marker, InfoWindow } from "@vis.gl/react-google-maps";
 import axios from "axios";
 
-const GOOGLE_MAPS_API_KEY = "AIzaSyBQo5nxo05_KSMmN3lbJNyAaRoZ0zgUNac";
-const API_URL = "https://projet-live-event.infinityfreeapp.com/wp-json/tribe/events/v1/events";
+// Utilisation des variables d'environnement
+const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "YOUR_FALLBACK_KEY";
+const API_URL = process.env.NEXT_PUBLIC_WP_API_URL || "/api/proxy/events";
 
 const parisCoordinates = { lat: 48.8566, lng: 2.3522 };
 
@@ -17,7 +18,7 @@ const MapWithCheckboxes = () => {
   const [directionsRenderer, setDirectionsRenderer] = useState(null);
   const [mapInstance, setMapInstance] = useState(null);
 
-  // Charger les événements depuis l'API WordPress
+  // Charger les événements depuis l'API WordPress via le proxy
   useEffect(() => {
     const fetchEvents = async () => {
       try {
@@ -46,7 +47,7 @@ const MapWithCheckboxes = () => {
     }
   }, []);
 
-  // Obtenir les concerts avec coordonnées valides
+  // Filtrer les concerts avec coordonnées valides
   const getConcerts = () => {
     return events
       .filter((event) => event.venue && event.venue.latitude && event.venue.longitude)
@@ -60,7 +61,7 @@ const MapWithCheckboxes = () => {
       }));
   };
 
-  // Afficher les directions
+  // Calculer l'itinéraire vers la destination
   const calculateRoute = (destination) => {
     if (userLocation && destination && mapInstance) {
       const directionsService = new window.google.maps.DirectionsService();
@@ -87,7 +88,7 @@ const MapWithCheckboxes = () => {
     }
   };
 
-  // Nettoyer les directions
+  // Nettoyer l'itinéraire
   const clearRoute = () => {
     if (directionsRenderer) {
       directionsRenderer.setMap(null);
@@ -125,7 +126,7 @@ const MapWithCheckboxes = () => {
         </label>
       </div>
 
-      {/* Carte */}
+      {/* Carte Google Maps */}
       <div className="map-container" style={{ height: "500px", width: "100%" }}>
         <APIProvider apiKey={GOOGLE_MAPS_API_KEY}>
           <Map
@@ -134,7 +135,7 @@ const MapWithCheckboxes = () => {
             center={userLocation || parisCoordinates}
             onLoad={(map) => setMapInstance(map)}
           >
-            {/* Toilettes */}
+            {/* Marqueurs pour les toilettes */}
             {showToilettes && (
               <Marker
                 position={{ lat: 48.857, lng: 2.352 }}
@@ -150,7 +151,7 @@ const MapWithCheckboxes = () => {
               />
             )}
 
-            {/* Buvettes */}
+            {/* Marqueurs pour les buvettes */}
             {showBuvettes && (
               <Marker
                 position={{ lat: 48.858, lng: 2.353 }}
@@ -166,7 +167,7 @@ const MapWithCheckboxes = () => {
               />
             )}
 
-            {/* Concerts */}
+            {/* Marqueurs pour les concerts */}
             {showConcerts &&
               getConcerts().map((location) => (
                 <Marker
@@ -177,11 +178,11 @@ const MapWithCheckboxes = () => {
                 />
               ))}
 
-            {/* InfoWindow */}
+            {/* InfoWindow pour afficher les détails du marqueur sélectionné */}
             {selectedLocation && (
               <InfoWindow
                 position={{ lat: selectedLocation.lat, lng: selectedLocation.lng }}
-                onCloseClick={() => setSelectedLocation(null)}
+                onCloseClick={clearRoute}
               >
                 <div>
                   <h3>{selectedLocation.name}</h3>

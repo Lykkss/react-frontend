@@ -1,5 +1,5 @@
-// src/config.js
 const wpApiSettings = window.wpApiSettings || {
-    baseUrl: 'https://projet-live-event.infinityfreeapp.com',
+    baseUrl: process.env.NEXT_PUBLIC_WP_API_URL || '',
 };
+
 export default wpApiSettings;
