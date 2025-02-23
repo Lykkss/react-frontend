@@ -1,7 +1,7 @@
 export default async function handler(req, res) {
     const API_URL = process.env.WP_API_URL;
 
-    console.log("Proxy API_URL:", API_URL);  // Log de la variable d'environnement
+    console.log("Proxy API_URL:", API_URL);  // Log pour déboguer
 
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
@@ -25,7 +25,7 @@ export default async function handler(req, res) {
         }
 
         const data = await response.json();
-        console.log("API Data Received:", data);  // Vérifie le format des données
+        console.log("API Data Received:", data);  // Vérifie la structure ici
 
         res.status(200).json(data);
     } catch (error) {

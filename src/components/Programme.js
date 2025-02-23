@@ -7,33 +7,32 @@ const Programme = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const API_URL = "/api/proxy"; // Utilisation du proxy Vercel
+  const API_URL = process.env.NEXT_PUBLIC_WP_API_URL || "/api/proxy";
 
-  useEffect(() => {
-    const fetchEvents = async () => {
-      console.log("Fetching events from API:", API_URL);
-      try {
-        const response = await axios.get(API_URL);
-        console.log("API Raw Response:", response); // Log complet
-        console.log("API Data:", response.data); // Données reçues
-  
-        if (response.data && Array.isArray(response.data.events)) {
-          setEvents(response.data.events);
-        } else {
-          console.error("Les données 'events' sont manquantes ou mal formatées.", response.data);
-          setError("Aucun événement trouvé ou format incorrect.");
-        }
-      } catch (err) {
-        console.error("Erreur lors de la récupération des événements:", err);
-        setError("Erreur lors de la récupération des événements.");
-      } finally {
-        setLoading(false);
+useEffect(() => {
+  const fetchEvents = async () => {
+    console.log("Fetching events from API:", API_URL);
+    try {
+      const response = await axios.get(API_URL);
+      console.log("API Response:", response.data);
+
+      if (response.data && Array.isArray(response.data.events)) {
+        setEvents(response.data.events);
+      } else {
+        console.error("Les données 'events' sont manquantes ou mal formatées.", response.data);
+        setError("Aucun événement trouvé ou format incorrect.");
       }
-    };
-  
-    fetchEvents();
-  }, []);
-  
+    } catch (err) {
+      console.error("Erreur lors de la récupération des événements:", err);
+      setError("Erreur lors de la récupération des événements.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchEvents();
+}, []);
+
 
   // Gestion des états : chargement, erreur et affichage des données
   if (loading) return <p>Chargement des événements...</p>;
