@@ -9,30 +9,31 @@ const Programme = () => {
 
   const API_URL = process.env.NEXT_PUBLIC_WP_API_URL || "/api/proxy";
 
-useEffect(() => {
-  const fetchEvents = async () => {
-    console.log("Fetching events from API:", API_URL);
-    try {
-      const response = await axios.get(API_URL);
-      console.log("API Response:", response.data);
+  useEffect(() => {
+    const fetchEvents = async () => {
+      console.log("Fetching events from API:", API_URL);
+      try {
+        const response = await axios.get(API_URL);
+        console.log("API Response:", response.data);
 
-      if (response.data && Array.isArray(response.data.events)) {
-        setEvents(response.data.events);
-      } else {
-        console.error("Les données 'events' sont manquantes ou mal formatées.", response.data);
-        setError("Aucun événement trouvé ou format incorrect.");
+        // Vérification robuste des données reçues
+        const eventsData = response.data?.events;
+        if (Array.isArray(eventsData)) {
+          setEvents(eventsData);
+        } else {
+          console.error("Les données 'events' sont manquantes ou mal formatées.", response.data);
+          setError("Aucun événement trouvé ou format incorrect.");
+        }
+      } catch (err) {
+        console.error("Erreur lors de la récupération des événements:", err);
+        setError("Erreur lors de la récupération des événements.");
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      console.error("Erreur lors de la récupération des événements:", err);
-      setError("Erreur lors de la récupération des événements.");
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
 
-  fetchEvents();
-}, []);
-
+    fetchEvents();
+  }, [API_URL]);
 
   // Gestion des états : chargement, erreur et affichage des données
   if (loading) return <p>Chargement des événements...</p>;
