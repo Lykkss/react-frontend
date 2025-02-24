@@ -19,6 +19,14 @@ const Programme = () => {
           },
         });
 
+        // Vérifie si la réponse est du JSON
+        const contentType = response.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
+          const text = await response.text();
+          console.error("❌ Réponse non-JSON reçue :", text);
+          throw new Error("La réponse de l'API n'est pas du JSON.");
+        }
+
         if (!response.ok) {
           throw new Error(`HTTP error! Status: ${response.status}`);
         }
@@ -41,7 +49,7 @@ const Programme = () => {
     };
 
     fetchEvents();
-  }, []);
+  }, [API_URL]); // Déclenche le useEffect uniquement quand l'URL change
 
   // Gestion des états : chargement, erreur et affichage des données
   if (loading) return <p>Chargement des événements...</p>;
