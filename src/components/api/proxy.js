@@ -7,6 +7,7 @@ export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "https://react-frontend-6m66.vercel.app");
   res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS, POST, PUT, DELETE");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  res.setHeader("Access-Control-Allow-Credentials", "true");
 
   // Gestion des requêtes OPTIONS (pré-vol CORS)
   if (req.method === "OPTIONS") {
@@ -14,7 +15,8 @@ export default async function handler(req, res) {
   }
 
   try {
-    const path = req.url.replace('/api/proxy', '') || '/events';
+    // Corrige la construction du chemin API
+    const path = req.url.startsWith('/api/proxy') ? req.url.replace('/api/proxy', '') : '/events';
     const apiUrl = `${API_BASE_URL}${path}`;
     console.log("📡 Appel API WordPress :", apiUrl);
 
@@ -27,11 +29,19 @@ export default async function handler(req, res) {
     });
 
     console.log("✅ Réponse API WordPress:", response.status);
+    console.log("🔑 Headers API WordPress:", response.headers);
 
     if (!response.ok) {
       const errorText = await response.text();
       console.error("❌ Erreur API WordPress:", response.status, errorText);
       return res.status(response.status).json({ error: errorText });
+    }
+
+    const contentType = response.headers.get("content-type");
+    if (!contentType || !contentType.includes("application/json")) {
+      const text = await response.text();
+      console.error("❌ Réponse non-JSON reçue :", text);
+      return res.status(500).json({ error: "Réponse non-JSON reçue depuis l'API WordPress." });
     }
 
     const data = await response.json();
