@@ -1,35 +1,45 @@
 export default async function handler(req, res) {
-    const API_URL = process.env.WP_API_URL;
-  
-    res.setHeader("Access-Control-Allow-Origin", "*");
-    res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-  
-    if (req.method === "OPTIONS") {
-      return res.status(200).end();
-    }
-  
-    try {
-      const response = await fetch(API_URL, {
-        headers: {
-          "User-Agent": "Mozilla/5.0",
-        },
-      });
-  
-      if (!response.ok) {
-        throw new Error(`Erreur API: ${response.statusText}`);
-      }
-  
-      const contentType = response.headers.get("content-type");
-      if (contentType && contentType.includes("application/json")) {
-        const data = await response.json();
-        res.status(200).json(data);
-      } else {
-        throw new Error("La réponse n'est pas en JSON");
-      }
-    } catch (error) {
-      console.error("Erreur lors de la récupération des événements:", error);
-      res.status(500).json({ error: "Erreur lors de la récupération des événements" });
-    }
+  const API_BASE_URL = "http://158.69.54.81:84/wp-json/tribe/events/v1";
+
+  console.log("🔄 Requête entrante vers le proxy:", req.method, req.url);
+
+  // En-têtes CORS pour Vercel
+  res.setHeader("Access-Control-Allow-Origin", "https://react-frontend-6m66.vercel.app");
+  res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS, POST, PUT, DELETE");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+
+  // Gestion des requêtes OPTIONS (pré-vol CORS)
+  if (req.method === "OPTIONS") {
+    return res.status(200).end();
   }
-  
+
+  try {
+    const path = req.url.replace('/api/proxy', '') || '/events';
+    const apiUrl = `${API_BASE_URL}${path}`;
+    console.log("📡 Appel API WordPress :", apiUrl);
+
+    const response = await fetch(apiUrl, {
+      method: req.method,
+      headers: {
+        "User-Agent": "Mozilla/5.0",
+        ...(req.headers.authorization && { Authorization: req.headers.authorization }),
+      },
+    });
+
+    console.log("✅ Réponse API WordPress:", response.status);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("❌ Erreur API WordPress:", response.status, errorText);
+      return res.status(response.status).json({ error: errorText });
+    }
+
+    const data = await response.json();
+    console.log("📋 Données API:", data);
+
+    res.status(200).json(data);
+  } catch (error) {
+    console.error("🚨 Erreur lors de la récupération des événements:", error.message);
+    res.status(500).json({ error: "Erreur lors de la récupération des événements" });
+  }
+}

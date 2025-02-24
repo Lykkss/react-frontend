@@ -4,7 +4,7 @@ import { FaMoneyBillWave, FaMapMarkerAlt, FaUser } from 'react-icons/fa';
 import Image from '../assets/melissa-askew-AUXanrckXn0-unsplash.jpg';
 
 // Utilisation de la variable d'environnement
-const API_URL = process.env.NEXT_PUBLIC_WP_API_URL || "/api/proxy/events";
+const API_URL = process.env.NEXT_PUBLIC_WP_API_URL || "/api/proxy";
 
 const GroupeDetails = () => {
     const { id } = useParams();
@@ -14,23 +14,22 @@ const GroupeDetails = () => {
 
     useEffect(() => {
         const fetchGroupDetails = async () => {
-            try {
-                // Appel via le proxy pour masquer l'IP
-                const response = await fetch(`${API_URL}/${id}`);
-                if (!response.ok) {
-                    throw new Error('Erreur de chargement des détails du groupe');
-                }
-                const data = await response.json();
-                setGroup(data);
-            } catch (err) {
-                setError(err.message);
-            } finally {
-                setLoading(false);
+          try {
+            const response = await fetch(`${API_URL}/events/${id}`); // Ajout de /events
+            if (!response.ok) {
+              throw new Error('Erreur de chargement des détails du groupe');
             }
+            const data = await response.json();
+            setGroup(data);
+          } catch (err) {
+            setError(err.message);
+          } finally {
+            setLoading(false);
+          }
         };
-
+      
         fetchGroupDetails();
-    }, [id]);
+      }, [id]);
 
     if (loading) return <p className="text-center">Chargement...</p>;
     if (error) return <p className="text-center text-red-500">Erreur : {error}</p>;

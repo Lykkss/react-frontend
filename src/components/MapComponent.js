@@ -18,32 +18,44 @@ const MapWithCheckboxes = () => {
   const [directionsRenderer, setDirectionsRenderer] = useState(null);
   const [mapInstance, setMapInstance] = useState(null);
 
+  // Vérifier la clé API
+  useEffect(() => {
+    if (!GOOGLE_MAPS_API_KEY) {
+      console.error("❌ Clé API Google Maps manquante !");
+    }
+  }, []);
+
   // Charger les événements depuis l'API WordPress via le proxy
   useEffect(() => {
     const fetchEvents = async () => {
       try {
-        const response = await axios.get(API_URL);
+        const response = await axios.get(`${API_URL}/events`);
         setEvents(response.data.events || []);
       } catch (error) {
-        console.error("Erreur lors de la récupération des événements", error);
+        console.error("❌ Erreur lors de la récupération des événements :", error);
       }
     };
-
+  
     fetchEvents();
   }, []);
+  
 
   // Localiser l'utilisateur
   useEffect(() => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          setUserLocation({
+          const coords = {
             lat: position.coords.latitude,
             lng: position.coords.longitude,
-          });
+          };
+          console.log("📍 Localisation utilisateur :", coords);
+          setUserLocation(coords);
         },
-        (error) => console.error("Erreur de géolocalisation", error)
+        (error) => console.error("❌ Erreur de géolocalisation :", error)
       );
+    } else {
+      console.error("❌ La géolocalisation n'est pas supportée par ce navigateur.");
     }
   }, []);
 
@@ -63,7 +75,7 @@ const MapWithCheckboxes = () => {
 
   // Calculer l'itinéraire vers la destination
   const calculateRoute = (destination) => {
-    if (userLocation && destination && mapInstance) {
+    if (window.google && userLocation && destination && mapInstance) {
       const directionsService = new window.google.maps.DirectionsService();
       const renderer = new window.google.maps.DirectionsRenderer();
       renderer.setMap(mapInstance);
@@ -79,11 +91,12 @@ const MapWithCheckboxes = () => {
             renderer.setDirections(result);
             setDirectionsRenderer(renderer);
           } else {
-            console.error("Erreur lors du calcul de l'itinéraire : ", status);
+            console.error("❌ Erreur lors du calcul de l'itinéraire :", status);
           }
         }
       );
     } else {
+      console.error("❌ Google Maps API ou géolocalisation non disponible !");
       alert("Géolocalisation non activée ou destination invalide !");
     }
   };
@@ -130,9 +143,9 @@ const MapWithCheckboxes = () => {
       <div className="map-container" style={{ height: "500px", width: "100%" }}>
         <APIProvider apiKey={GOOGLE_MAPS_API_KEY}>
           <Map
-            mapContainerStyle={{ height: "100%", width: "100%" }}
-            zoom={13}
-            center={userLocation || parisCoordinates}
+            style={{ height: "100%", width: "100%" }}
+            defaultZoom={13}
+            defaultCenter={userLocation || parisCoordinates}
             onLoad={(map) => setMapInstance(map)}
           >
             {/* Marqueurs pour les toilettes */}

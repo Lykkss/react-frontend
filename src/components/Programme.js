@@ -11,22 +11,18 @@ const Programme = () => {
 
   useEffect(() => {
     const fetchEvents = async () => {
-      console.log("Fetching events from API:", API_URL);
       try {
-        const response = await axios.get(API_URL);
-        console.log("API Raw Response:", response);
-        console.log("API Response Data:", response.data);
+        const response = await axios.get('/api/events'); // Appelle le proxy
+        console.log("✅ Données reçues:", response.data);
   
-        // Vérifie la présence et le type de 'events'
         if (response.data && Array.isArray(response.data.events)) {
-          console.log("Events loaded successfully:", response.data.events);
           setEvents(response.data.events);
         } else {
-          console.error("Les données 'events' sont manquantes ou mal formatées.", response.data);
+          console.error("⚠️ Données 'events' manquantes ou incorrectes:", response.data);
           setError("Aucun événement trouvé ou format incorrect.");
         }
       } catch (err) {
-        console.error("Erreur lors de la récupération des événements:", err);
+        console.error("🚨 Erreur Axios:", err);
         setError("Erreur lors de la récupération des événements.");
       } finally {
         setLoading(false);
@@ -34,7 +30,8 @@ const Programme = () => {
     };
   
     fetchEvents();
-  }, []);  
+  }, []);
+  
 
   // Gestion des états : chargement, erreur et affichage des données
   if (loading) return <p>Chargement des événements...</p>;
