@@ -1,37 +1,47 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import axios from "axios";
 
 const Programme = () => {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const API_URL = process.env.NEXT_PUBLIC_WP_API_URL || "/api/proxy";
+  const API_URL = process.env.NEXT_PUBLIC_WP_API_URL || "/api/proxy/events";
 
   useEffect(() => {
     const fetchEvents = async () => {
       try {
-        const response = await axios.get('/api/events'); // Appelle le proxy
-        console.log("✅ Données reçues:", response.data);
-  
-        if (response.data && Array.isArray(response.data.events)) {
-          setEvents(response.data.events);
+        // Appel API avec fetch
+        const response = await fetch(API_URL, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        console.log("✅ Données reçues:", data);
+
+        if (data && Array.isArray(data.events)) {
+          setEvents(data.events);
         } else {
-          console.error("⚠️ Données 'events' manquantes ou incorrectes:", response.data);
+          console.error("⚠️ Données 'events' manquantes ou incorrectes:", data);
           setError("Aucun événement trouvé ou format incorrect.");
         }
       } catch (err) {
-        console.error("🚨 Erreur Axios:", err);
+        console.error("🚨 Erreur lors de la récupération des événements:", err);
         setError("Erreur lors de la récupération des événements.");
       } finally {
         setLoading(false);
       }
     };
-  
+
     fetchEvents();
   }, []);
-  
 
   // Gestion des états : chargement, erreur et affichage des données
   if (loading) return <p>Chargement des événements...</p>;
