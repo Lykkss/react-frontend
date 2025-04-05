@@ -2,79 +2,98 @@ import React, { useState, useEffect } from "react";
 import { Map, APIProvider, Marker, InfoWindow } from "@vis.gl/react-google-maps";
 import axios from "axios";
 
-const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
+const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "YOUR_FALLBACK_KEY";
 const API_URL = process.env.NEXT_PUBLIC_WP_API_URL || "/api/proxy/events";
 const parisCoordinates = { lat: 48.8566, lng: 2.3522 };
 
-const MapWithCheckboxFilters = () => {
+const MapWithCheckboxes = () => {
+  const [showToilettes, setShowToilettes] = useState(false);
+  const [showBuvettes, setShowBuvettes] = useState(false);
+  const [showConcerts, setShowConcerts] = useState(false);
   const [events, setEvents] = useState([]);
-  const [geocodedEvents, setGeocodedEvents] = useState([]);
+  const [geocodedConcerts, setGeocodedConcerts] = useState([]);
   const [selectedLocation, setSelectedLocation] = useState(null);
-  const [categoryFilters, setCategoryFilters] = useState({});
+  const [userLocation, setUserLocation] = useState(null);
+  const [directionsRenderer, setDirectionsRenderer] = useState(null);
+  const [mapInstance, setMapInstance] = useState(null);
 
-  // 1. Charger les événements WordPress
   useEffect(() => {
-    axios.get(`${API_URL}/events`)
-      .then((res) => {
-        const evts = res.data.events || [];
-        setEvents(evts);
-
-        // Extraire les catégories disponibles
-        const catMap = {};
-        evts.forEach(e => {
-          if (Array.isArray(e.categories)) {
-            e.categories.forEach(cat => {
-              if (cat?.name) {
-                catMap[cat.name] = false;
-              }
-            });
-          }
-        });
-        setCategoryFilters(catMap);
-      })
-      .catch((err) => console.error("❌ Erreur chargement événements:", err));
+    if (!GOOGLE_MAPS_API_KEY) {
+      console.error("❌ Clé API Google Maps manquante !");
+    }
   }, []);
 
-  // 2. Géocoder les adresses via l'API Google Maps
+  // Charger les événements
+  useEffect(() => {
+    const fetchEvents = async () => {
+      try {
+        const response = await axios.get(`${API_URL}/events`);
+        setEvents(response.data.events || []);
+      } catch (error) {
+        console.error("❌ Erreur lors de la récupération des événements :", error);
+      }
+    };
+    fetchEvents();
+  }, []);
+
+  // Géolocalisation utilisateur
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setUserLocation({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          });
+        },
+        (error) => console.error("❌ Erreur de géolocalisation :", error)
+      );
+    } else {
+      console.error("❌ La géolocalisation n'est pas supportée.");
+    }
+  }, []);
+
+  // Géocoder les concerts dynamiquement
   useEffect(() => {
     const geocodeEvents = async () => {
-      const results = [];
+      const result = [];
 
       for (const event of events) {
-        if (!event.venue?.address) continue;
+        const venue = event.venue;
+        if (!venue || !venue.address || !venue.city) continue;
 
-        const addressFull = `${event.venue.address}, ${event.venue.city}, ${event.venue.country}`;
-        const cacheKey = `geo-${addressFull}`;
+        const fullAddress = `${venue.address}, ${venue.city}, ${venue.country}`;
+        const cacheKey = `geo-${fullAddress}`;
         let coords = JSON.parse(localStorage.getItem(cacheKey) || "null");
 
         if (!coords) {
           try {
-            const res = await axios.get("https://maps.googleapis.com/maps/api/geocode/json", {
-              params: { address: addressFull, key: GOOGLE_MAPS_API_KEY },
+            const geoRes = await axios.get("https://maps.googleapis.com/maps/api/geocode/json", {
+              params: { address: fullAddress, key: GOOGLE_MAPS_API_KEY },
             });
-            coords = res.data.results[0]?.geometry?.location;
+            coords = geoRes.data.results[0]?.geometry?.location;
             if (coords) {
               localStorage.setItem(cacheKey, JSON.stringify(coords));
             }
           } catch (err) {
-            console.warn("⚠️ Erreur géocodage:", addressFull, err);
+            console.warn("⚠️ Échec géocodage:", fullAddress, err);
+            continue;
           }
         }
 
         if (coords) {
-          results.push({
+          result.push({
             id: event.id,
             lat: coords.lat,
             lng: coords.lng,
-            name: event.venue.venue,
-            description: event.title,
-            categories: event.categories?.map(c => c.name) || [],
+            name: venue.venue,
+            description: `Concert: ${event.title}`,
             url: event.url,
           });
         }
       }
 
-      setGeocodedEvents(results);
+      setGeocodedConcerts(result);
     };
 
     if (events.length) {
@@ -82,68 +101,136 @@ const MapWithCheckboxFilters = () => {
     }
   }, [events]);
 
-  // 3. Gérer les filtres
-  const toggleCategory = (cat) => {
-    setCategoryFilters((prev) => ({
-      ...prev,
-      [cat]: !prev[cat],
-    }));
+  // Calculer l'itinéraire
+  const calculateRoute = (destination) => {
+    if (window.google && userLocation && destination && mapInstance) {
+      const directionsService = new window.google.maps.DirectionsService();
+      const renderer = new window.google.maps.DirectionsRenderer();
+      renderer.setMap(mapInstance);
+
+      directionsService.route(
+        {
+          origin: userLocation,
+          destination: { lat: destination.lat, lng: destination.lng },
+          travelMode: window.google.maps.TravelMode.WALKING,
+        },
+        (result, status) => {
+          if (status === "OK") {
+            renderer.setDirections(result);
+            setDirectionsRenderer(renderer);
+          } else {
+            console.error("❌ Erreur de calcul d'itinéraire :", status);
+          }
+        }
+      );
+    } else {
+      alert("🧭 Géolocalisation non activée ou destination invalide.");
+    }
   };
 
-  const activeCategories = Object.entries(categoryFilters)
-    .filter(([_, checked]) => checked)
-    .map(([cat]) => cat);
-
-  const filteredEvents = activeCategories.length === 0
-    ? []
-    : geocodedEvents.filter(event =>
-        event.categories.some(cat => activeCategories.includes(cat))
-      );
+  // Nettoyer itinéraire
+  const clearRoute = () => {
+    if (directionsRenderer) {
+      directionsRenderer.setMap(null);
+      setDirectionsRenderer(null);
+    }
+  };
 
   return (
     <div>
-      {/* ✅ Filtres dynamiques */}
-      {Object.keys(categoryFilters).length > 0 && (
-        <div className="checkboxes" style={{ marginBottom: "10px" }}>
-          {Object.entries(categoryFilters).map(([cat, checked]) => (
-            <label key={cat} style={{ marginRight: "10px" }}>
-              <input
-                type="checkbox"
-                checked={checked}
-                onChange={() => toggleCategory(cat)}
-              />
-              {cat}
-            </label>
-          ))}
-        </div>
-      )}
+      {/* Filtres */}
+      <div className="checkboxes" style={{ marginBottom: "10px" }}>
+        <label>
+          <input
+            type="checkbox"
+            checked={showToilettes}
+            onChange={() => setShowToilettes(!showToilettes)}
+          />
+          Toilettes
+        </label>
+        <label style={{ marginLeft: "10px" }}>
+          <input
+            type="checkbox"
+            checked={showBuvettes}
+            onChange={() => setShowBuvettes(!showBuvettes)}
+          />
+          Buvettes
+        </label>
+        <label style={{ marginLeft: "10px" }}>
+          <input
+            type="checkbox"
+            checked={showConcerts}
+            onChange={() => setShowConcerts(!showConcerts)}
+          />
+          Concerts
+        </label>
+      </div>
 
-      {/* ✅ Carte */}
-      <div style={{ height: "500px", width: "100%" }}>
+      {/* Carte */}
+      <div className="map-container" style={{ height: "500px", width: "100%" }}>
         <APIProvider apiKey={GOOGLE_MAPS_API_KEY}>
           <Map
-            defaultCenter={parisCoordinates}
-            defaultZoom={13}
             style={{ height: "100%", width: "100%" }}
+            defaultZoom={13}
+            defaultCenter={userLocation || parisCoordinates}
+            onLoad={(map) => setMapInstance(map)}
           >
-            {filteredEvents.map((event) => (
+            {/* Toilettes */}
+            {showToilettes && (
               <Marker
-                key={event.id}
-                position={{ lat: event.lat, lng: event.lng }}
-                title={event.name}
-                onClick={() => setSelectedLocation(event)}
+                position={{ lat: 48.857, lng: 2.352 }}
+                title="Toilettes 1"
+                onClick={() =>
+                  setSelectedLocation({
+                    name: "Toilettes 1",
+                    description: "Toilettes publiques",
+                    lat: 48.857,
+                    lng: 2.352,
+                  })
+                }
               />
-            ))}
+            )}
 
+            {/* Buvettes */}
+            {showBuvettes && (
+              <Marker
+                position={{ lat: 48.858, lng: 2.353 }}
+                title="Buvette 1"
+                onClick={() =>
+                  setSelectedLocation({
+                    name: "Buvette 1",
+                    description: "Petite buvette",
+                    lat: 48.858,
+                    lng: 2.353,
+                  })
+                }
+              />
+            )}
+
+            {/* Concerts */}
+            {showConcerts &&
+              geocodedConcerts.map((location) => (
+                <Marker
+                  key={location.id}
+                  position={{ lat: location.lat, lng: location.lng }}
+                  title={location.name}
+                  onClick={() => setSelectedLocation(location)}
+                />
+              ))}
+
+            {/* InfoWindow */}
             {selectedLocation && (
               <InfoWindow
                 position={{ lat: selectedLocation.lat, lng: selectedLocation.lng }}
-                onCloseClick={() => setSelectedLocation(null)}
+                onCloseClick={clearRoute}
               >
                 <div>
                   <h3>{selectedLocation.name}</h3>
                   <p>{selectedLocation.description}</p>
-                  <a href={selectedLocation.url} target="_blank" rel="noreferrer">Voir l'événement</a>
+                  <button onClick={() => calculateRoute(selectedLocation)}>Y aller</button>
+                  <button onClick={clearRoute} style={{ marginLeft: "10px" }}>
+                    Effacer
+                  </button>
                 </div>
               </InfoWindow>
             )}
@@ -154,5 +241,4 @@ const MapWithCheckboxFilters = () => {
   );
 };
 
-
-export default MapWithCheckboxFilters;
+export default MapWithCheckboxes;
