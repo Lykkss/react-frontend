@@ -154,4 +154,5 @@ const MapWithCheckboxFilters = () => {
   );
 };
 
+
 export default MapWithCheckboxFilters;
