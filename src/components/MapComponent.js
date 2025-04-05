@@ -1,155 +1,115 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Map, APIProvider, Marker, InfoWindow } from "@vis.gl/react-google-maps";
 import axios from "axios";
 
-// Utilisation des variables d'environnement
-const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "YOUR_FALLBACK_KEY";
+const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
 const API_URL = process.env.NEXT_PUBLIC_WP_API_URL || "/api/proxy/events";
-
 const parisCoordinates = { lat: 48.8566, lng: 2.3522 };
 
 const MapWithCheckboxes = () => {
-  const [showToilettes, setShowToilettes] = useState(false);
-  const [showBuvettes, setShowBuvettes] = useState(false);
-  const [showConcerts, setShowConcerts] = useState(false);
+  const [filters, setFilters] = useState({
+    toilettes: false,
+    buvettes: false,
+    concerts: false,
+  });
   const [events, setEvents] = useState([]);
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [userLocation, setUserLocation] = useState(null);
   const [directionsRenderer, setDirectionsRenderer] = useState(null);
   const [mapInstance, setMapInstance] = useState(null);
 
-  // Vérifier la clé API
+  // ✅ Gérer les filtres
+  const toggleFilter = (key) =>
+    setFilters((prev) => ({ ...prev, [key]: !prev[key] }));
+
+  // ✅ Récupération des événements
   useEffect(() => {
-    if (!GOOGLE_MAPS_API_KEY) {
-      console.error("❌ Clé API Google Maps manquante !");
-    }
+    axios
+      .get(`${API_URL}/events`)
+      .then((res) => setEvents(res.data.events || []))
+      .catch((err) => console.error("❌ Erreur lors de la récupération des événements :", err));
   }, []);
 
-  // Charger les événements depuis l'API WordPress via le proxy
+  // ✅ Géolocalisation
   useEffect(() => {
-    const fetchEvents = async () => {
-      try {
-        const response = await axios.get(`${API_URL}/events`);
-        setEvents(response.data.events || []);
-      } catch (error) {
-        console.error("❌ Erreur lors de la récupération des événements :", error);
-      }
-    };
-  
-    fetchEvents();
-  }, []);
-  
-
-  // Localiser l'utilisateur
-  useEffect(() => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const coords = {
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
-          };
-          console.log("📍 Localisation utilisateur :", coords);
-          setUserLocation(coords);
-        },
-        (error) => console.error("❌ Erreur de géolocalisation :", error)
-      );
-    } else {
-      console.error("❌ La géolocalisation n'est pas supportée par ce navigateur.");
-    }
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => setUserLocation({ lat: coords.latitude, lng: coords.longitude }),
+      (err) => console.error("❌ Erreur de géolocalisation :", err)
+    );
   }, []);
 
-  // Filtrer les concerts avec coordonnées valides
-  const getConcerts = () => {
-    return events
-      .filter((event) => event.venue && event.venue.latitude && event.venue.longitude)
-      .map((event) => ({
-        id: event.id,
-        lat: parseFloat(event.venue.latitude),
-        lng: parseFloat(event.venue.longitude),
-        name: event.venue.venue,
-        description: `Concert: ${event.title}`,
-        url: event.url,
-      }));
-  };
+  // ✅ Extraction des concerts avec coordonnées
+  const getConcerts = useCallback(() =>
+    events
+      .filter((e) => e.venue?.latitude && e.venue?.longitude)
+      .map((e) => ({
+        id: e.id,
+        lat: parseFloat(e.venue.latitude),
+        lng: parseFloat(e.venue.longitude),
+        name: e.venue.venue,
+        description: `Concert: ${e.title}`,
+        url: e.url,
+      })), [events]);
 
-  // Calculer l'itinéraire vers la destination
+  // ✅ Calcul d’itinéraire
   const calculateRoute = (destination) => {
-    if (window.google && userLocation && destination && mapInstance) {
-      const directionsService = new window.google.maps.DirectionsService();
-      const renderer = new window.google.maps.DirectionsRenderer();
-      renderer.setMap(mapInstance);
-
-      directionsService.route(
-        {
-          origin: userLocation,
-          destination: { lat: destination.lat, lng: destination.lng },
-          travelMode: window.google.maps.TravelMode.WALKING,
-        },
-        (result, status) => {
-          if (status === "OK") {
-            renderer.setDirections(result);
-            setDirectionsRenderer(renderer);
-          } else {
-            console.error("❌ Erreur lors du calcul de l'itinéraire :", status);
-          }
-        }
-      );
-    } else {
-      console.error("❌ Google Maps API ou géolocalisation non disponible !");
-      alert("Géolocalisation non activée ou destination invalide !");
+    if (!window.google || !userLocation || !destination || !mapInstance) {
+      alert("Géolocalisation ou carte non disponible.");
+      return;
     }
+
+    const service = new window.google.maps.DirectionsService();
+    const renderer = new window.google.maps.DirectionsRenderer({ map: mapInstance });
+
+    service.route(
+      {
+        origin: userLocation,
+        destination: { lat: destination.lat, lng: destination.lng },
+        travelMode: window.google.maps.TravelMode.WALKING,
+      },
+      (result, status) => {
+        if (status === "OK") {
+          renderer.setDirections(result);
+          setDirectionsRenderer(renderer);
+        } else {
+          console.error("❌ Échec de l'itinéraire :", status);
+        }
+      }
+    );
   };
 
-  // Nettoyer l'itinéraire
   const clearRoute = () => {
-    if (directionsRenderer) {
-      directionsRenderer.setMap(null);
-      setDirectionsRenderer(null);
-    }
+    directionsRenderer?.setMap(null);
+    setDirectionsRenderer(null);
   };
 
   return (
     <div>
-      {/* Filtres */}
+      {/* ✅ Filtres */}
       <div className="checkboxes" style={{ marginBottom: "10px" }}>
-        <label>
-          <input
-            type="checkbox"
-            checked={showToilettes}
-            onChange={() => setShowToilettes(!showToilettes)}
-          />
-          Toilettes
-        </label>
-        <label style={{ marginLeft: "10px" }}>
-          <input
-            type="checkbox"
-            checked={showBuvettes}
-            onChange={() => setShowBuvettes(!showBuvettes)}
-          />
-          Buvettes
-        </label>
-        <label style={{ marginLeft: "10px" }}>
-          <input
-            type="checkbox"
-            checked={showConcerts}
-            onChange={() => setShowConcerts(!showConcerts)}
-          />
-          Concerts
-        </label>
+        {["toilettes", "buvettes", "concerts"].map((type) => (
+          <label key={type} style={{ marginLeft: type !== "toilettes" ? "10px" : 0 }}>
+            <input
+              type="checkbox"
+              checked={filters[type]}
+              onChange={() => toggleFilter(type)}
+            />
+            {type.charAt(0).toUpperCase() + type.slice(1)}
+          </label>
+        ))}
       </div>
 
-      {/* Carte Google Maps */}
+      {/* ✅ Carte */}
       <div className="map-container" style={{ height: "500px", width: "100%" }}>
         <APIProvider apiKey={GOOGLE_MAPS_API_KEY}>
           <Map
             style={{ height: "100%", width: "100%" }}
             defaultZoom={13}
             defaultCenter={userLocation || parisCoordinates}
-            onLoad={(map) => setMapInstance(map)}
+            onLoad={setMapInstance}
           >
-            {/* Marqueurs pour les toilettes */}
-            {showToilettes && (
+            {filters.toilettes && (
               <Marker
                 position={{ lat: 48.857, lng: 2.352 }}
                 title="Toilettes 1"
@@ -163,9 +123,7 @@ const MapWithCheckboxes = () => {
                 }
               />
             )}
-
-            {/* Marqueurs pour les buvettes */}
-            {showBuvettes && (
+            {filters.buvettes && (
               <Marker
                 position={{ lat: 48.858, lng: 2.353 }}
                 title="Buvette 1"
@@ -179,19 +137,16 @@ const MapWithCheckboxes = () => {
                 }
               />
             )}
-
-            {/* Marqueurs pour les concerts */}
-            {showConcerts &&
-              getConcerts().map((location) => (
+            {filters.concerts &&
+              getConcerts().map((loc) => (
                 <Marker
-                  key={location.id}
-                  position={{ lat: location.lat, lng: location.lng }}
-                  title={location.name}
-                  onClick={() => setSelectedLocation(location)}
+                  key={loc.id}
+                  position={{ lat: loc.lat, lng: loc.lng }}
+                  title={loc.name}
+                  onClick={() => setSelectedLocation(loc)}
                 />
               ))}
 
-            {/* InfoWindow pour afficher les détails du marqueur sélectionné */}
             {selectedLocation && (
               <InfoWindow
                 position={{ lat: selectedLocation.lat, lng: selectedLocation.lng }}
