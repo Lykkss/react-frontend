@@ -136,6 +136,7 @@ const MapWithCheckboxFilters = () => {
             )}
           </Map>
         </APIProvider>
+        
       </div>
     </div>
   );
