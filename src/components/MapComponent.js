@@ -6,32 +6,34 @@ const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
 const API_URL = process.env.NEXT_PUBLIC_WP_API_URL || "/api/proxy/events";
 const parisCoordinates = { lat: 48.8566, lng: 2.3522 };
 
-const MapWithFilters = () => {
+const MapWithCheckboxFilters = () => {
   const [events, setEvents] = useState([]);
   const [geocodedEvents, setGeocodedEvents] = useState([]);
-  const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedLocation, setSelectedLocation] = useState(null);
-  const [categories, setCategories] = useState([]);
+  const [categoryFilters, setCategoryFilters] = useState({}); // { Electro: true, Rock: false, etc. }
 
-  // 1. Récupération des événements
+  // Récupération des événements
   useEffect(() => {
     axios.get(`${API_URL}/events`)
-      .then(res => {
-        setEvents(res.data.events || []);
+      .then((res) => {
+        const evts = res.data.events || [];
+        setEvents(evts);
 
-        // Extraire toutes les catégories
-        const cats = new Set();
-        res.data.events.forEach(e => {
-          e.categories?.forEach(cat => cats.add(cat.name));
+        // Générer les filtres checkbox dynamiques
+        const catMap = {};
+        evts.forEach(e => {
+          e.categories?.forEach(cat => {
+            catMap[cat.name] = false;
+          });
         });
-        setCategories(["all", ...Array.from(cats)]);
+        setCategoryFilters(catMap);
       })
-      .catch(err => console.error("Erreur récupération events :", err));
+      .catch((err) => console.error("Erreur chargement événements:", err));
   }, []);
 
-  // 2. Géocodage
+  // Géocoder les adresses
   useEffect(() => {
-    const fetchGeocoded = async () => {
+    const geocodeEvents = async () => {
       const results = [];
 
       for (const event of events) {
@@ -49,7 +51,7 @@ const MapWithFilters = () => {
             coords = res.data.results[0]?.geometry?.location;
             if (coords) localStorage.setItem(cacheKey, JSON.stringify(coords));
           } catch (err) {
-            console.warn("Erreur géocodage :", addressFull, err);
+            console.warn("Erreur géocodage:", addressFull, err);
           }
         }
 
@@ -60,7 +62,7 @@ const MapWithFilters = () => {
             lng: coords.lng,
             name: event.venue.venue,
             description: event.title,
-            category: event.categories?.[0]?.name || "Autres",
+            categories: event.categories?.map(c => c.name) || [],
             url: event.url,
           });
         }
@@ -69,33 +71,48 @@ const MapWithFilters = () => {
       setGeocodedEvents(results);
     };
 
-    if (events.length) fetchGeocoded();
+    if (events.length) geocodeEvents();
   }, [events]);
 
-  // 3. Filtrage par catégorie
-  const filteredEvents = selectedCategory === "all"
-    ? geocodedEvents
-    : geocodedEvents.filter(e => e.category === selectedCategory);
+  // Gestion des checkbox
+  const toggleCategory = (cat) => {
+    setCategoryFilters((prev) => ({
+      ...prev,
+      [cat]: !prev[cat],
+    }));
+  };
+
+  // Filtrer les événements selon les catégories cochées
+  const activeCategories = Object.entries(categoryFilters)
+    .filter(([_, isChecked]) => isChecked)
+    .map(([cat]) => cat);
+
+  const filteredEvents = activeCategories.length === 0
+    ? []
+    : geocodedEvents.filter(event =>
+        event.categories.some(cat => activeCategories.includes(cat))
+      );
 
   return (
     <div>
-      {/* Sélecteur de catégorie */}
-      <div style={{ marginBottom: 10 }}>
-        <label>Catégorie : </label>
-        <select
-          value={selectedCategory}
-          onChange={(e) => setSelectedCategory(e.target.value)}
-        >
-          {categories.map((cat) => (
-            <option key={cat} value={cat}>{cat}</option>
-          ))}
-        </select>
+      {/* ✅ Checkboxes dynamiques */}
+      <div className="checkboxes" style={{ marginBottom: "10px" }}>
+        {Object.entries(categoryFilters).map(([cat, checked]) => (
+          <label key={cat} style={{ marginRight: "10px" }}>
+            <input
+              type="checkbox"
+              checked={checked}
+              onChange={() => toggleCategory(cat)}
+            />
+            {cat}
+          </label>
+        ))}
       </div>
 
-      {/* Carte */}
+      {/* ✅ Carte */}
       <div style={{ height: "500px", width: "100%" }}>
         <APIProvider apiKey={GOOGLE_MAPS_API_KEY}>
-          <Map defaultZoom={13} defaultCenter={parisCoordinates} style={{ height: "100%", width: "100%" }}>
+          <Map defaultCenter={parisCoordinates} defaultZoom={13} style={{ height: "100%", width: "100%" }}>
             {filteredEvents.map((event) => (
               <Marker
                 key={event.id}
@@ -113,7 +130,7 @@ const MapWithFilters = () => {
                 <div>
                   <h3>{selectedLocation.name}</h3>
                   <p>{selectedLocation.description}</p>
-                  <a href={selectedLocation.url} target="_blank">Voir +</a>
+                  <a href={selectedLocation.url} target="_blank" rel="noreferrer">Voir l'événement</a>
                 </div>
               </InfoWindow>
             )}
@@ -124,4 +141,4 @@ const MapWithFilters = () => {
   );
 };
 
-export default MapWithFilters;
+export default MapWithCheckboxFilters;
