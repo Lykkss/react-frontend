@@ -43,7 +43,7 @@ const Confidentialite = () => {
           </p>
 
           <p className="mt-6 text-center text-gray-500">
-            Dernière mise à jour : Novembre 2024
+            Dernière mise à jour : Avril 2025
           </p>
         </div>
       </div>
