@@ -10,28 +10,32 @@ const MapWithCheckboxFilters = () => {
   const [events, setEvents] = useState([]);
   const [geocodedEvents, setGeocodedEvents] = useState([]);
   const [selectedLocation, setSelectedLocation] = useState(null);
-  const [categoryFilters, setCategoryFilters] = useState({}); // { Electro: true, Rock: false, etc. }
+  const [categoryFilters, setCategoryFilters] = useState({});
 
-  // Récupération des événements
+  // 1. Charger les événements WordPress
   useEffect(() => {
     axios.get(`${API_URL}/events`)
       .then((res) => {
         const evts = res.data.events || [];
         setEvents(evts);
 
-        // Générer les filtres checkbox dynamiques
+        // Extraire les catégories disponibles
         const catMap = {};
         evts.forEach(e => {
-          e.categories?.forEach(cat => {
-            catMap[cat.name] = false;
-          });
+          if (Array.isArray(e.categories)) {
+            e.categories.forEach(cat => {
+              if (cat?.name) {
+                catMap[cat.name] = false;
+              }
+            });
+          }
         });
         setCategoryFilters(catMap);
       })
-      .catch((err) => console.error("Erreur chargement événements:", err));
+      .catch((err) => console.error("❌ Erreur chargement événements:", err));
   }, []);
 
-  // Géocoder les adresses
+  // 2. Géocoder les adresses via l'API Google Maps
   useEffect(() => {
     const geocodeEvents = async () => {
       const results = [];
@@ -49,9 +53,11 @@ const MapWithCheckboxFilters = () => {
               params: { address: addressFull, key: GOOGLE_MAPS_API_KEY },
             });
             coords = res.data.results[0]?.geometry?.location;
-            if (coords) localStorage.setItem(cacheKey, JSON.stringify(coords));
+            if (coords) {
+              localStorage.setItem(cacheKey, JSON.stringify(coords));
+            }
           } catch (err) {
-            console.warn("Erreur géocodage:", addressFull, err);
+            console.warn("⚠️ Erreur géocodage:", addressFull, err);
           }
         }
 
@@ -71,10 +77,12 @@ const MapWithCheckboxFilters = () => {
       setGeocodedEvents(results);
     };
 
-    if (events.length) geocodeEvents();
+    if (events.length) {
+      geocodeEvents();
+    }
   }, [events]);
 
-  // Gestion des checkbox
+  // 3. Gérer les filtres
   const toggleCategory = (cat) => {
     setCategoryFilters((prev) => ({
       ...prev,
@@ -82,9 +90,8 @@ const MapWithCheckboxFilters = () => {
     }));
   };
 
-  // Filtrer les événements selon les catégories cochées
   const activeCategories = Object.entries(categoryFilters)
-    .filter(([_, isChecked]) => isChecked)
+    .filter(([_, checked]) => checked)
     .map(([cat]) => cat);
 
   const filteredEvents = activeCategories.length === 0
@@ -95,24 +102,30 @@ const MapWithCheckboxFilters = () => {
 
   return (
     <div>
-      {/* ✅ Checkboxes dynamiques */}
-      <div className="checkboxes" style={{ marginBottom: "10px" }}>
-        {Object.entries(categoryFilters).map(([cat, checked]) => (
-          <label key={cat} style={{ marginRight: "10px" }}>
-            <input
-              type="checkbox"
-              checked={checked}
-              onChange={() => toggleCategory(cat)}
-            />
-            {cat}
-          </label>
-        ))}
-      </div>
+      {/* ✅ Filtres dynamiques */}
+      {Object.keys(categoryFilters).length > 0 && (
+        <div className="checkboxes" style={{ marginBottom: "10px" }}>
+          {Object.entries(categoryFilters).map(([cat, checked]) => (
+            <label key={cat} style={{ marginRight: "10px" }}>
+              <input
+                type="checkbox"
+                checked={checked}
+                onChange={() => toggleCategory(cat)}
+              />
+              {cat}
+            </label>
+          ))}
+        </div>
+      )}
 
       {/* ✅ Carte */}
       <div style={{ height: "500px", width: "100%" }}>
         <APIProvider apiKey={GOOGLE_MAPS_API_KEY}>
-          <Map defaultCenter={parisCoordinates} defaultZoom={13} style={{ height: "100%", width: "100%" }}>
+          <Map
+            defaultCenter={parisCoordinates}
+            defaultZoom={13}
+            style={{ height: "100%", width: "100%" }}
+          >
             {filteredEvents.map((event) => (
               <Marker
                 key={event.id}
@@ -136,7 +149,6 @@ const MapWithCheckboxFilters = () => {
             )}
           </Map>
         </APIProvider>
-        
       </div>
     </div>
   );
