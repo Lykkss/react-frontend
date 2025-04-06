@@ -44,7 +44,6 @@ const MapWithFilters = () => {
       try {
         const res = await axios.get(`${API_URL}/events`);
         const data = res.data.events || [];
-        console.log("🎫 Events récupérés:", data);
         setEvents(data);
 
         const cats = new Set();
@@ -71,11 +70,7 @@ const MapWithFilters = () => {
           params: { address: fullAddress, key: GOOGLE_MAPS_API_KEY },
         });
 
-        const status = res.data.status;
-        if (status !== "OK") {
-          console.warn("📛 Geocode échoué:", fullAddress, "→", status);
-          return null;
-        }
+        if (res.data.status !== "OK") return null;
 
         const coords = res.data.results[0]?.geometry?.location;
         if (coords) {
@@ -83,30 +78,28 @@ const MapWithFilters = () => {
           return coords;
         }
       } catch (err) {
-        console.warn("⚠️ Erreur geocodage:", fullAddress, err.message);
+        console.warn("Erreur geocodage:", fullAddress, err.message);
       }
       return null;
     };
 
     const filterAndGeocode = async () => {
-      const filtered = [];
-
-      for (const event of events) {
+      const promises = events.map(async (event) => {
         if (categoryFilter !== "all") {
           const catNames = event.categories?.map((c) => c.name) || [];
-          if (!catNames.includes(categoryFilter)) continue;
+          if (!catNames.includes(categoryFilter)) return null;
         }
         if (dateFilter) {
           const eventDate = new Date(event.start_date).toISOString().split("T")[0];
-          if (eventDate !== dateFilter) continue;
+          if (eventDate !== dateFilter) return null;
         }
 
         const venue = event.venue;
-        if (!venue || !venue.address || !venue.city || !venue.country) continue;
+        if (!venue || !venue.address || !venue.city || !venue.country) return null;
 
         const coords = await geocodeAddress(venue);
         if (coords) {
-          filtered.push({
+          return {
             id: event.id,
             lat: coords.lat,
             lng: coords.lng,
@@ -114,12 +107,13 @@ const MapWithFilters = () => {
             description: `🎤 ${event.title}`,
             url: event.url,
             icon: artistIcons[event.id],
-          });
+          };
         }
-      }
+        return null;
+      });
 
-      console.log("✅ Concerts filtrés et géocodés:", filtered);
-      setFilteredConcerts(filtered);
+      const results = await Promise.all(promises);
+      setFilteredConcerts(results.filter(Boolean));
     };
 
     if (events.length) filterAndGeocode();
