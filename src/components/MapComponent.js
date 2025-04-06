@@ -3,7 +3,7 @@ import { Map, APIProvider, Marker, InfoWindow } from "@vis.gl/react-google-maps"
 import axios from "axios";
 
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
-const API_URL = "/api/proxy"; // 🔧 Corrigé ici
+const API_URL = "/api/proxy";
 const parisCoordinates = { lat: 48.8566, lng: 2.3522 };
 
 const artistIcons = {
@@ -44,7 +44,7 @@ const MapWithFilters = () => {
       try {
         const res = await axios.get(`${API_URL}/events`);
         const data = res.data.events || [];
-        console.log("✅ Événements récupérés :", data);
+        console.log("🎫 Events récupérés:", data);
         setEvents(data);
 
         const cats = new Set();
@@ -70,14 +70,20 @@ const MapWithFilters = () => {
         const res = await axios.get("https://maps.googleapis.com/maps/api/geocode/json", {
           params: { address: fullAddress, key: GOOGLE_MAPS_API_KEY },
         });
+
+        const status = res.data.status;
+        if (status !== "OK") {
+          console.warn("📛 Geocode échoué:", fullAddress, "→", status);
+          return null;
+        }
+
         const coords = res.data.results[0]?.geometry?.location;
-        console.log("🧭 Résultat géocodage :", fullAddress, coords);
         if (coords) {
           localStorage.setItem(cacheKey, JSON.stringify(coords));
           return coords;
         }
       } catch (err) {
-        console.warn("⚠️ Échec géocodage:", fullAddress, err);
+        console.warn("⚠️ Erreur geocodage:", fullAddress, err.message);
       }
       return null;
     };
@@ -86,8 +92,6 @@ const MapWithFilters = () => {
       const filtered = [];
 
       for (const event of events) {
-        console.log("📍 Venue de l'événement :", event.title, event.venue);
-
         if (categoryFilter !== "all") {
           const catNames = event.categories?.map((c) => c.name) || [];
           if (!catNames.includes(categoryFilter)) continue;
@@ -98,7 +102,7 @@ const MapWithFilters = () => {
         }
 
         const venue = event.venue;
-        if (!venue) continue;
+        if (!venue || !venue.address || !venue.city || !venue.country) continue;
 
         const coords = await geocodeAddress(venue);
         if (coords) {
@@ -114,20 +118,7 @@ const MapWithFilters = () => {
         }
       }
 
-      // Test marker si aucun autre
-      if (filtered.length === 0) {
-        filtered.push({
-          id: 999,
-          lat: 48.8584,
-          lng: 2.2945,
-          name: "Tour Eiffel",
-          description: "Test manuel",
-          url: "#",
-          icon: "https://img.icons8.com/color/48/music.png",
-        });
-      }
-
-      console.log("📌 Concerts filtrés :", filtered);
+      console.log("✅ Concerts filtrés et géocodés:", filtered);
       setFilteredConcerts(filtered);
     };
 
