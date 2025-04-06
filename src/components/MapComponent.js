@@ -9,7 +9,7 @@ const parisCoordinates = { lat: 48.89243438749084, lng: 2.3940741223491946 };
 const artistIcons = {
   48: "https://img.icons8.com/color/48/dj.png",
   50: "https://img.icons8.com/color/48/rock-music.png",
-  71: "https://img.icons8.com/color/48/rock-music.png",
+  71: "https://img.icons8.com/emoji/48/musical-note-emoji.png",
   63: "https://img.icons8.com/color/48/orchestra.png",
   69: "https://img.icons8.com/color/48/music.png",
 };
