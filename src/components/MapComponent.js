@@ -3,7 +3,7 @@ import { Map, APIProvider, Marker, InfoWindow } from "@vis.gl/react-google-maps"
 import axios from "axios";
 
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
-const API_URL = process.env.NEXT_PUBLIC_WP_API_URL || "/api/proxy/events";
+const API_URL = "/api/proxy"; // 🔧 Corrigé ici
 const parisCoordinates = { lat: 48.8566, lng: 2.3522 };
 
 const artistIcons = {
@@ -21,7 +21,6 @@ const MapWithFilters = () => {
   const [filteredConcerts, setFilteredConcerts] = useState([]);
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [userLocation, setUserLocation] = useState(null);
-  const [mapInstance, setMapInstance] = useState(null);
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [dateFilter, setDateFilter] = useState("");
   const [categories, setCategories] = useState([]);
@@ -64,7 +63,6 @@ const MapWithFilters = () => {
       const fullAddress = `${venue.address}, ${venue.city}, ${venue.country}`;
       const cacheKey = `geo-${fullAddress}`;
       const cached = localStorage.getItem(cacheKey);
-
       if (cached) return JSON.parse(cached);
 
       try {
@@ -107,7 +105,7 @@ const MapWithFilters = () => {
             name: venue.venue,
             description: `🎤 ${event.title}`,
             url: event.url,
-            icon: artistIcons[event.id] || undefined,
+            icon: artistIcons[event.id],
           });
         }
       }
@@ -161,7 +159,6 @@ const MapWithFilters = () => {
             style={{ height: "100%", width: "100%" }}
             defaultZoom={13}
             defaultCenter={userLocation || parisCoordinates}
-            onLoad={(map) => setMapInstance(map)}
           >
             {showToilettes && (
               <Marker
@@ -198,7 +195,11 @@ const MapWithFilters = () => {
                 key={loc.id}
                 position={{ lat: loc.lat, lng: loc.lng }}
                 title={loc.name}
-                icon={loc.icon ? { url: loc.icon, scaledSize: new window.google.maps.Size(40, 40) } : undefined}
+                icon={
+                  loc.icon
+                    ? { url: loc.icon, scaledSize: new window.google.maps.Size(40, 40) }
+                    : undefined
+                }
                 onClick={() => setSelectedLocation(loc)}
               />
             ))}
