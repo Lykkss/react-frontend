@@ -286,7 +286,6 @@ const MapWithFilters = () => {
                 <div>
                   <h3>{selectedLocation.name}</h3>
                   <p>{selectedLocation.description}</p>
-                  {selectedLocation.url}
                 </div>
               </InfoWindow>
             )}
