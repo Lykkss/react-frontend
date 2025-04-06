@@ -286,9 +286,7 @@ const MapWithFilters = () => {
                 <div>
                   <h3>{selectedLocation.name}</h3>
                   <p>{selectedLocation.description}</p>
-                  {selectedLocation.url && (
-                    <a href={selectedLocation.url} target="_blank" rel="noreferrer">Voir l'événement</a>
-                  )}
+                  {selectedLocation.url}
                 </div>
               </InfoWindow>
             )}
