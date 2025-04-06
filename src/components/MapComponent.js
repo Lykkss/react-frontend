@@ -2,9 +2,9 @@ import React, { useState, useEffect } from "react";
 import { Map, APIProvider, Marker, InfoWindow } from "@vis.gl/react-google-maps";
 import axios from "axios";
 
-const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
+const GOOGLE_MAPS_API_KEY = "AIzaSyBp3CW6pCqZU-zFe-oL2zL7NF2ZPJ6B-1c";
 const API_URL = process.env.NEXT_PUBLIC_WP_API_URL || "/api/proxy";
-const parisCoordinates = { lat: 48.8566, lng: 2.3522 };
+const parisCoordinates = { lat: 48.89243438749084, lng: 2.3940741223491946 };
 
 const artistIcons = {
   48: "https://img.icons8.com/color/48/dj.png",
@@ -14,16 +14,23 @@ const artistIcons = {
   69: "https://img.icons8.com/color/48/music.png",
 };
 
-const toiletIcon = "https://img.icons8.com/ios-filled/50/wc.png";
-const buvetteIcon = "https://img.icons8.com/color/48/beer.png";
-
+/**
+ * Parse une chaîne de type "description | longitude | latitude"
+ * @param {string} rawString - La chaîne brute à parser
+ * @returns {{ description: string, longitude: number, latitude: number }}
+ * @throws {Error} Si le format est invalide ou les coordonnées ne sont pas convertibles
+ */
 /**
  * Parse une chaîne de type "<p>latitude | longitude</p>"
+ * @param {string} rawString - La chaîne brute à parser
+ * @returns {{ latitude: number, longitude: number }}
+ * @throws {Error} Si le format est invalide ou les coordonnées ne sont pas convertibles
  */
 export function parseLocationString(rawString) {
   try {
     if (!rawString) throw new Error("Chaîne vide");
 
+    // Nettoyage de la balise <p> et autres caractères HTML
     const cleaned = rawString
       .replace(/<\/?[^>]+(>|$)/g, "") // supprime les balises HTML
       .trim();
@@ -42,7 +49,10 @@ export function parseLocationString(rawString) {
       throw new Error(`Latitude ou longitude non valides. latitude: "${latStr}", longitude: "${lonStr}"`);
     }
 
-    return { latitude, longitude };
+    return {
+      latitude,
+      longitude
+    };
   } catch (error) {
     console.error('Erreur lors du parsing de la chaîne :', error.message);
     throw error;
@@ -53,10 +63,6 @@ const MapWithFilters = () => {
   const [showToilettes, setShowToilettes] = useState(false);
   const [showBuvettes, setShowBuvettes] = useState(false);
   const [events, setEvents] = useState([]);
-  const [toilettes, setToilettes] = useState([]);
-  const [buvettes, setBuvettes] = useState([]);
-  const [mappedToilettes, setMappedToilettes] = useState([]);
-  const [mappedBuvettes, setMappedBuvettes] = useState([]);
   const [filteredConcerts, setFilteredConcerts] = useState([]);
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [userLocation, setUserLocation] = useState(null);
@@ -96,45 +102,6 @@ const MapWithFilters = () => {
     };
     fetchEvents();
   }, []);
-
-  useEffect(() => {
-    const fetchExtras = async () => {
-      try {
-        const [toilRes, buvRes] = await Promise.all([
-          axios.get(`${API_URL}/toilettes`),
-          axios.get(`${API_URL}/buvettes`)
-        ]);
-        setToilettes(toilRes.data || []);
-        setBuvettes(buvRes.data || []);
-      } catch (err) {
-        console.error("Erreur chargement toilettes/buvettes:", err);
-      }
-    };
-    fetchExtras();
-  }, []);
-
-  useEffect(() => {
-    const parseExtras = (rawList, label) => {
-      return rawList.map((item, i) => {
-        try {
-          const { latitude, longitude } = parseLocationString(item.description);
-          return {
-            id: `${label}-${i}`,
-            lat: latitude,
-            lng: longitude,
-            name: item.title?.rendered || label,
-            type: label
-          };
-        } catch (err) {
-          console.warn(`❌ Parsing échoué pour ${label}`, item);
-          return null;
-        }
-      }).filter(Boolean);
-    };
-
-    setMappedToilettes(parseExtras(toilettes, "toilette"));
-    setMappedBuvettes(parseExtras(buvettes, "buvette"));
-  }, [toilettes, buvettes]);
 
   useEffect(() => {
     const geocodeAddress = async (venue) => {
@@ -260,37 +227,37 @@ const MapWithFilters = () => {
           <Map
             style={{ height: "100%", width: "100%" }}
             defaultZoom={13}
-            defaultCenter={userLocation || parisCoordinates}
+            defaultCenter={parisCoordinates}
           >
-            {showToilettes && mappedToilettes.map((t) => (
+            {showToilettes && (
               <Marker
-                key={t.id}
-                position={{ lat: t.lat, lng: t.lng }}
-                title={t.name}
-                icon={{ url: toiletIcon, scaledSize: new window.google.maps.Size(40, 40) }}
-                onClick={() => setSelectedLocation({
-                  name: t.name,
-                  lat: t.lat,
-                  lng: t.lng,
-                  description: "Toilettes publiques",
-                })}
+                position={{ lat: 48.857, lng: 2.352 }}
+                title="Toilettes 1"
+                onClick={() =>
+                  setSelectedLocation({
+                    name: "Toilettes 1",
+                    description: "Toilettes publiques",
+                    lat: 48.857,
+                    lng: 2.352,
+                  })
+                }
               />
-            ))}
+            )}
 
-            {showBuvettes && mappedBuvettes.map((b) => (
+            {showBuvettes && (
               <Marker
-                key={b.id}
-                position={{ lat: b.lat, lng: b.lng }}
-                title={b.name}
-                icon={{ url: buvetteIcon, scaledSize: new window.google.maps.Size(40, 40) }}
-                onClick={() => setSelectedLocation({
-                  name: b.name,
-                  lat: b.lat,
-                  lng: b.lng,
-                  description: "Buvette",
-                })}
+                position={{ lat: 48.858, lng: 2.353 }}
+                title="Buvette 1"
+                onClick={() =>
+                  setSelectedLocation({
+                    name: "Buvette 1",
+                    description: "Petite buvette",
+                    lat: 48.858,
+                    lng: 2.353,
+                  })
+                }
               />
-            ))}
+            )}
 
             {filteredConcerts.map((loc) => (
               <Marker
@@ -314,11 +281,7 @@ const MapWithFilters = () => {
                 <div>
                   <h3>{selectedLocation.name}</h3>
                   <p>{selectedLocation.description}</p>
-                  {selectedLocation.url && (
-                    <a href={selectedLocation.url} target="_blank" rel="noreferrer">
-                      Voir l'événement
-                    </a>
-                  )}
+                  <a href={selectedLocation.url} target="_blank" rel="noreferrer">Voir l'événement</a>
                 </div>
               </InfoWindow>
             )}
