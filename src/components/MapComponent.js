@@ -3,7 +3,7 @@ import { Map, APIProvider, Marker, InfoWindow } from "@vis.gl/react-google-maps"
 import axios from "axios";
 
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
-const API_URL = "/api/proxy";
+const API_URL = process.env.NEXT_PUBLIC_WP_API_URL || "/api/proxy";
 const parisCoordinates = { lat: 48.8566, lng: 2.3522 };
 
 const artistIcons = {
@@ -74,6 +74,8 @@ const MapWithFilters = () => {
         const res = await axios.get("https://maps.googleapis.com/maps/api/geocode/json", {
           params: { address: fullAddress, key: GOOGLE_MAPS_API_KEY },
         });
+
+        console.log("📦 Réponse geocoding:", res.data);
 
         if (res.data.status !== "OK") {
           console.warn("Erreur geocoding Google:", res.data.error_message);
