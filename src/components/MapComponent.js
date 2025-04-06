@@ -14,12 +14,11 @@ const artistIcons = {
   69: "https://img.icons8.com/color/48/music.png",
 };
 
-/**
- * Parse une chaîne de type "description | longitude | latitude"
- * @param {string} rawString - La chaîne brute à parser
- * @returns {{ description: string, longitude: number, latitude: number }}
- * @throws {Error} Si le format est invalide ou les coordonnées ne sont pas convertibles
- */
+const iconwcandfood = {
+  toilets: "https://img.icons8.com/ios-filled/50/wc.png",
+  buvette: "https://img.icons8.com/color/48/beer.png",
+};
+
 /**
  * Parse une chaîne de type "<p>latitude | longitude</p>"
  * @param {string} rawString - La chaîne brute à parser
@@ -30,9 +29,9 @@ export function parseLocationString(rawString) {
   try {
     if (!rawString) throw new Error("Chaîne vide");
 
-    // Nettoyage de la balise <p> et autres caractères HTML
+    // Supprimer les balises HTML
     const cleaned = rawString
-      .replace(/<\/?[^>]+(>|$)/g, "") // supprime les balises HTML
+      .replace(/<\/?[^>]+(>|$)/g, "")
       .trim();
 
     const parts = cleaned.split('|').map(part => part.trim());
@@ -49,10 +48,7 @@ export function parseLocationString(rawString) {
       throw new Error(`Latitude ou longitude non valides. latitude: "${latStr}", longitude: "${lonStr}"`);
     }
 
-    return {
-      latitude,
-      longitude
-    };
+    return { latitude, longitude };
   } catch (error) {
     console.error('Erreur lors du parsing de la chaîne :', error.message);
     throw error;
@@ -104,40 +100,8 @@ const MapWithFilters = () => {
   }, []);
 
   useEffect(() => {
-    const geocodeAddress = async (venue) => {
-      if (!venue || !venue.address || !venue.city || !venue.country) {
-        console.warn("Adresse incomplète ou manquante", venue);
-        return null;
-      }
-
-      const fullAddress = `${venue.address}, ${venue.city}, ${venue.country}`;
-      const cacheKey = `geo-${fullAddress}`;
-      const cached = localStorage.getItem(cacheKey);
-      if (cached) return JSON.parse(cached);
-
-      try {
-        const res = await axios.get("https://maps.googleapis.com/maps/api/geocode/json", {
-          params: { address: fullAddress, key: GOOGLE_MAPS_API_KEY },
-        });
-
-        if (res.data.status !== "OK") {
-          console.warn("Erreur geocoding Google:", res.data.error_message);
-          return null;
-        }
-
-        const coords = res.data.results[0]?.geometry?.location;
-        if (coords) {
-          localStorage.setItem(cacheKey, JSON.stringify(coords));
-          return coords;
-        }
-      } catch (err) {
-        console.error("❌ Geocoding FAILED:", err.message);
-      }
-      return null;
-    };
-
-    const filterAndGeocode = async () => {
-      const promises = events.map(async (event) => {
+    const filterAndParse = async () => {
+      const results = await Promise.all(events.map(async (event) => {
         if (categoryFilter !== "all") {
           const catNames = event.categories?.map((c) => c.name) || [];
           if (!catNames.includes(categoryFilter)) return null;
@@ -160,29 +124,25 @@ const MapWithFilters = () => {
           }
         }
 
-        if (!coords) {
-          coords = await geocodeAddress(event.venue);
-        }
-
         if (coords) {
           return {
             id: event.id,
             lat: coords.lat,
             lng: coords.lng,
             name: event.venue?.venue || "Lieu inconnu",
+            description: `🎤 ${event.title}`,
             url: event.url,
             icon: artistIcons[event.id],
           };
         }
 
         return null;
-      });
+      }));
 
-      const results = await Promise.all(promises);
       setFilteredConcerts(results.filter(Boolean));
     };
 
-    if (events.length) filterAndGeocode();
+    if (events.length) filterAndParse();
   }, [events, categoryFilter, dateFilter]);
 
   return (
@@ -227,36 +187,80 @@ const MapWithFilters = () => {
           <Map
             style={{ height: "100%", width: "100%" }}
             defaultZoom={13}
-            defaultCenter={parisCoordinates}
+            defaultCenter={userLocation || parisCoordinates}
           >
             {showToilettes && (
-              <Marker
-                position={{ lat: 48.857, lng: 2.352 }}
-                title="Toilettes 1"
-                onClick={() =>
-                  setSelectedLocation({
-                    name: "Toilettes 1",
-                    description: "Toilettes publiques",
-                    lat: 48.857,
-                    lng: 2.352,
-                  })
-                }
-              />
+              <>
+                <Marker
+                  position={{ lat: 48.85341, lng: 2.3488 }}
+                  title="Toilette B"
+                  icon={{
+                    url: iconwcandfood.toilets,
+                    scaledSize: new window.google.maps.Size(40, 40),
+                  }}
+                  onClick={() =>
+                    setSelectedLocation({
+                      name: "Toilette B",
+                      description: "Toilettes publiques 🚻",
+                      lat: 48.85341,
+                      lng: 2.3488,
+                    })
+                  }
+                />
+                <Marker
+                  position={{ lat: 48.892265844185864, lng: 2.3908280829451645 }}
+                  title="Toilette A"
+                  icon={{
+                    url: iconwcandfood.toilets,
+                    scaledSize: new window.google.maps.Size(40, 40),
+                  }}
+                  onClick={() =>
+                    setSelectedLocation({
+                      name: "Toilette A",
+                      description: "Toilettes publiques 🚻",
+                      lat: 48.892265844185864,
+                      lng: 2.3908280829451645,
+                    })
+                  }
+                />
+              </>
             )}
 
             {showBuvettes && (
-              <Marker
-                position={{ lat: 48.858, lng: 2.353 }}
-                title="Buvette 1"
-                onClick={() =>
-                  setSelectedLocation({
-                    name: "Buvette 1",
-                    description: "Petite buvette",
-                    lat: 48.858,
-                    lng: 2.353,
-                  })
-                }
-              />
+              <>
+                <Marker
+                  position={{ lat: 48.889119253507474, lng: 2.3951812985797716 }}
+                  title="Buvette A"
+                  icon={{
+                    url: iconwcandfood.buvette,
+                    scaledSize: new window.google.maps.Size(40, 40),
+                  }}
+                  onClick={() =>
+                    setSelectedLocation({
+                      name: "Buvette A",
+                      description: "Buvette disponible ici 🍻",
+                      lat: 48.889119253507474,
+                      lng: 2.3951812985797716,
+                    })
+                  }
+                />
+                <Marker
+                  position={{ lat: 48.89359608003054, lng: 2.3944138241471657 }}
+                  title="Buvette B"
+                  icon={{
+                    url: iconwcandfood.buvette,
+                    scaledSize: new window.google.maps.Size(40, 40),
+                  }}
+                  onClick={() =>
+                    setSelectedLocation({
+                      name: "Buvette B",
+                      description: "Buvette disponible ici 🍻",
+                      lat: 48.89359608003054,
+                      lng: 2.3944138241471657,
+                    })
+                  }
+                />
+              </>
             )}
 
             {filteredConcerts.map((loc) => (
@@ -281,7 +285,9 @@ const MapWithFilters = () => {
                 <div>
                   <h3>{selectedLocation.name}</h3>
                   <p>{selectedLocation.description}</p>
-                  <a href={selectedLocation.url} target="_blank" rel="noreferrer">Voir l'événement</a>
+                  {selectedLocation.url && (
+                    <a href={selectedLocation.url} target="_blank" rel="noreferrer">Voir l'événement</a>
+                  )}
                 </div>
               </InfoWindow>
             )}
