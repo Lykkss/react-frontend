@@ -14,27 +14,10 @@ const artistIcons = {
   69: "https://img.icons8.com/color/48/music.png",
 };
 
-/**
- * Parse une chaîne de type "description | longitude | latitude"
- * @param {string} rawString - La chaîne brute à parser
- * @returns {{ description: string, longitude: number, latitude: number }}
- * @throws {Error} Si le format est invalide ou les coordonnées ne sont pas convertibles
- */
-/**
- * Parse une chaîne de type "<p>latitude | longitude</p>"
- * @param {string} rawString - La chaîne brute à parser
- * @returns {{ latitude: number, longitude: number }}
- * @throws {Error} Si le format est invalide ou les coordonnées ne sont pas convertibles
- */
 export function parseLocationString(rawString) {
   try {
     if (!rawString) throw new Error("Chaîne vide");
-
-    // Nettoyage de la balise <p> et autres caractères HTML
-    const cleaned = rawString
-      .replace(/<\/?[^>]+(>|$)/g, "") // supprime les balises HTML
-      .trim();
-
+    const cleaned = rawString.replace(/<\/?[^>]+(>|$)/g, "").trim();
     const parts = cleaned.split('|').map(part => part.trim());
 
     if (parts.length !== 2) {
@@ -49,10 +32,7 @@ export function parseLocationString(rawString) {
       throw new Error(`Latitude ou longitude non valides. latitude: "${latStr}", longitude: "${lonStr}"`);
     }
 
-    return {
-      latitude,
-      longitude
-    };
+    return { latitude, longitude };
   } catch (error) {
     console.error('Erreur lors du parsing de la chaîne :', error.message);
     throw error;
@@ -64,6 +44,9 @@ const MapWithFilters = () => {
   const [showBuvettes, setShowBuvettes] = useState(false);
   const [events, setEvents] = useState([]);
   const [filteredConcerts, setFilteredConcerts] = useState([]);
+  const [toilettesData, setToilettesData] = useState([]);
+  const [buvettesData, setBuvettesData] = useState([]);
+  const [scenesData, setScenesData] = useState([]);
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [userLocation, setUserLocation] = useState(null);
   const [categoryFilter, setCategoryFilter] = useState("all");
@@ -92,10 +75,45 @@ const MapWithFilters = () => {
         setEvents(data);
 
         const cats = new Set();
+        const toilettes = [];
+        const buvettes = [];
+        const scenes = [];
+
         data.forEach((e) => {
           e.categories?.forEach((c) => cats.add(c.name));
+
+          const rawLoc = e.venue?.description;
+          if (!rawLoc) return;
+
+          try {
+            const { latitude, longitude } = parseLocationString(rawLoc);
+            const base = {
+              id: e.id,
+              lat: latitude,
+              lng: longitude,
+              name: e.venue?.venue || e.title,
+              description: e.title,
+              url: e.url,
+              icon: artistIcons[e.id],
+            };
+
+            const title = e.title.toLowerCase();
+            if (title.includes("toilette")) {
+              toilettes.push(base);
+            } else if (title.includes("buvette")) {
+              buvettes.push(base);
+            } else if (title.includes("scène") || title.includes("scene")) {
+              scenes.push(base);
+            }
+          } catch (err) {
+            console.warn("Erreur de parsing pour:", e.title);
+          }
         });
+
         setCategories(["all", ...Array.from(cats)]);
+        setToilettesData(toilettes);
+        setBuvettesData(buvettes);
+        setScenesData(scenes);
       } catch (err) {
         console.error("Erreur chargement événements:", err);
       }
@@ -104,39 +122,7 @@ const MapWithFilters = () => {
   }, []);
 
   useEffect(() => {
-    const geocodeAddress = async (venue) => {
-      if (!venue || !venue.address || !venue.city || !venue.country) {
-        console.warn("Adresse incomplète ou manquante", venue);
-        return null;
-      }
-
-      const fullAddress = `${venue.address}, ${venue.city}, ${venue.country}`;
-      const cacheKey = `geo-${fullAddress}`;
-      const cached = localStorage.getItem(cacheKey);
-      if (cached) return JSON.parse(cached);
-
-      try {
-        const res = await axios.get("https://maps.googleapis.com/maps/api/geocode/json", {
-          params: { address: fullAddress, key: GOOGLE_MAPS_API_KEY },
-        });
-
-        if (res.data.status !== "OK") {
-          console.warn("Erreur geocoding Google:", res.data.error_message);
-          return null;
-        }
-
-        const coords = res.data.results[0]?.geometry?.location;
-        if (coords) {
-          localStorage.setItem(cacheKey, JSON.stringify(coords));
-          return coords;
-        }
-      } catch (err) {
-        console.error("❌ Geocoding FAILED:", err.message);
-      }
-      return null;
-    };
-
-    const filterAndGeocode = async () => {
+    const filterConcerts = async () => {
       const promises = events.map(async (event) => {
         if (categoryFilter !== "all") {
           const catNames = event.categories?.map((c) => c.name) || [];
@@ -149,40 +135,28 @@ const MapWithFilters = () => {
         }
 
         const rawLoc = event.venue?.description;
-        let coords = null;
+        if (!rawLoc) return null;
 
-        if (rawLoc) {
-          try {
-            const parsed = parseLocationString(rawLoc);
-            coords = { lat: parsed.latitude, lng: parsed.longitude };
-          } catch (err) {
-            console.warn("📛 Parsing échoué pour l'événement :", event.title);
-          }
-        }
-
-        if (!coords) {
-          coords = await geocodeAddress(event.venue);
-        }
-
-        if (coords) {
+        try {
+          const parsed = parseLocationString(rawLoc);
           return {
             id: event.id,
-            lat: coords.lat,
-            lng: coords.lng,
-            name: event.venue?.venue || "Lieu inconnu",
+            lat: parsed.latitude,
+            lng: parsed.longitude,
+            name: event.venue?.venue || event.title,
             url: event.url,
             icon: artistIcons[event.id],
           };
+        } catch {
+          return null;
         }
-
-        return null;
       });
 
       const results = await Promise.all(promises);
       setFilteredConcerts(results.filter(Boolean));
     };
 
-    if (events.length) filterAndGeocode();
+    if (events.length) filterConcerts();
   }, [events, categoryFilter, dateFilter]);
 
   return (
@@ -227,38 +201,9 @@ const MapWithFilters = () => {
           <Map
             style={{ height: "100%", width: "100%" }}
             defaultZoom={13}
-            defaultCenter={parisCoordinates}
+            defaultCenter={userLocation || parisCoordinates}
           >
-            {showToilettes && (
-              <Marker
-                position={{ lat: 48.857, lng: 2.352 }}
-                title="Toilettes 1"
-                onClick={() =>
-                  setSelectedLocation({
-                    name: "Toilettes 1",
-                    description: "Toilettes publiques",
-                    lat: 48.857,
-                    lng: 2.352,
-                  })
-                }
-              />
-            )}
-
-            {showBuvettes && (
-              <Marker
-                position={{ lat: 48.858, lng: 2.353 }}
-                title="Buvette 1"
-                onClick={() =>
-                  setSelectedLocation({
-                    name: "Buvette 1",
-                    description: "Petite buvette",
-                    lat: 48.858,
-                    lng: 2.353,
-                  })
-                }
-              />
-            )}
-
+            {/* Concerts */}
             {filteredConcerts.map((loc) => (
               <Marker
                 key={loc.id}
@@ -273,6 +218,39 @@ const MapWithFilters = () => {
               />
             ))}
 
+            {/* Toilettes */}
+            {showToilettes &&
+              toilettesData.map((t) => (
+                <Marker
+                  key={t.id}
+                  position={{ lat: t.lat, lng: t.lng }}
+                  title={t.name}
+                  onClick={() => setSelectedLocation(t)}
+                />
+              ))}
+
+            {/* Buvettes */}
+            {showBuvettes &&
+              buvettesData.map((b) => (
+                <Marker
+                  key={b.id}
+                  position={{ lat: b.lat, lng: b.lng }}
+                  title={b.name}
+                  onClick={() => setSelectedLocation(b)}
+                />
+              ))}
+
+            {/* Scènes */}
+            {scenesData.map((s) => (
+              <Marker
+                key={s.id}
+                position={{ lat: s.lat, lng: s.lng }}
+                title={s.name}
+                onClick={() => setSelectedLocation(s)}
+              />
+            ))}
+
+            {/* InfoWindow */}
             {selectedLocation && (
               <InfoWindow
                 position={{ lat: selectedLocation.lat, lng: selectedLocation.lng }}
@@ -281,7 +259,11 @@ const MapWithFilters = () => {
                 <div>
                   <h3>{selectedLocation.name}</h3>
                   <p>{selectedLocation.description}</p>
-                  <a href={selectedLocation.url} target="_blank" rel="noreferrer">Voir l'événement</a>
+                  {selectedLocation.url && (
+                    <a href={selectedLocation.url} target="_blank" rel="noreferrer">
+                      Voir plus
+                    </a>
+                  )}
                 </div>
               </InfoWindow>
             )}
