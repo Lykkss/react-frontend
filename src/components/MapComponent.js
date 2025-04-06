@@ -97,8 +97,8 @@ const MapWithFilters = () => {
               lat: latitude,
               lng: longitude,
               name: e.venue?.venue || e.title,
-              description: e.title,
-              url: e.url,
+              description: e.title || "Pas de description disponible",
+              url: e.url || null,
               icon: artistIcons[e.id],
             };
 
@@ -150,7 +150,8 @@ const MapWithFilters = () => {
             lat: parsed.latitude,
             lng: parsed.longitude,
             name: event.venue?.venue || event.title,
-            url: event.url,
+            description: event.title || "Pas de description disponible",
+            url: event.url || null,
             icon: artistIcons[event.id],
           };
         } catch {
