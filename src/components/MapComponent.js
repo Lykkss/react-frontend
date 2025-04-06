@@ -3,7 +3,7 @@ import { Map, APIProvider, Marker, InfoWindow } from "@vis.gl/react-google-maps"
 import axios from "axios";
 
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
-const API_URL = "/api/proxy"; // 🔧 Corrigé ici
+const API_URL = process.env.NEXT_PUBLIC_WP_API_URL || "/api/proxy";
 const parisCoordinates = { lat: 48.8566, lng: 2.3522 };
 
 const artistIcons = {
@@ -14,7 +14,7 @@ const artistIcons = {
   69: "https://img.icons8.com/color/48/music.png",
 };
 
-const MapWithFilters = () => {
+function MapWithFilters() {
   const [showToilettes, setShowToilettes] = useState(false);
   const [showBuvettes, setShowBuvettes] = useState(false);
   const [events, setEvents] = useState([]);
@@ -28,13 +28,10 @@ const MapWithFilters = () => {
   useEffect(() => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setUserLocation({
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
-          });
+        (pos) => {
+          setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
         },
-        (error) => console.error("Erreur de géolocalisation :", error)
+        (err) => console.warn("Erreur de géolocalisation:", err)
       );
     }
   }, []);
@@ -46,13 +43,13 @@ const MapWithFilters = () => {
         const data = res.data.events || [];
         setEvents(data);
 
-        const cats = new Set();
-        data.forEach((e) => {
-          e.categories?.forEach((c) => cats.add(c.name));
-        });
-        setCategories(["all", ...Array.from(cats)]);
+        const uniqueCategories = new Set();
+        data.forEach((event) =>
+          event.categories?.forEach((cat) => uniqueCategories.add(cat.name))
+        );
+        setCategories(["all", ...Array.from(uniqueCategories)]);
       } catch (err) {
-        console.error("Erreur chargement événements:", err);
+        console.error("Erreur chargement des événements:", err);
       }
     };
     fetchEvents();
@@ -67,15 +64,19 @@ const MapWithFilters = () => {
 
       try {
         const res = await axios.get("https://maps.googleapis.com/maps/api/geocode/json", {
-          params: { address: fullAddress, key: GOOGLE_MAPS_API_KEY },
+          params: {
+            address: fullAddress,
+            key: GOOGLE_MAPS_API_KEY,
+          },
         });
+
         const coords = res.data.results[0]?.geometry?.location;
         if (coords) {
           localStorage.setItem(cacheKey, JSON.stringify(coords));
           return coords;
         }
       } catch (err) {
-        console.warn("⚠️ Échec géocodage:", fullAddress, err);
+        console.warn("Erreur géocodage:", fullAddress, err.message);
       }
       return null;
     };
@@ -88,6 +89,7 @@ const MapWithFilters = () => {
           const catNames = event.categories?.map((c) => c.name) || [];
           if (!catNames.includes(categoryFilter)) continue;
         }
+
         if (dateFilter) {
           const eventDate = new Date(event.start_date).toISOString().split("T")[0];
           if (eventDate !== dateFilter) continue;
@@ -97,23 +99,25 @@ const MapWithFilters = () => {
         if (!venue) continue;
 
         const coords = await geocodeAddress(venue);
-        if (coords) {
-          filtered.push({
-            id: event.id,
-            lat: coords.lat,
-            lng: coords.lng,
-            name: venue.venue,
-            description: `🎤 ${event.title}`,
-            url: event.url,
-            icon: artistIcons[event.id],
-          });
-        }
+        if (!coords) continue;
+
+        filtered.push({
+          id: event.id,
+          lat: coords.lat,
+          lng: coords.lng,
+          name: venue.venue,
+          description: `🎤 ${event.title}`,
+          url: event.url,
+          icon: artistIcons[event.id],
+        });
       }
 
       setFilteredConcerts(filtered);
     };
 
-    if (events.length) filterAndGeocode();
+    if (events.length > 0) {
+      filterAndGeocode();
+    }
   }, [events, categoryFilter, dateFilter]);
 
   return (
@@ -134,7 +138,7 @@ const MapWithFilters = () => {
         />
       </div>
 
-      <div className="checkboxes" style={{ marginBottom: 10 }}>
+      <div style={{ marginBottom: 10 }}>
         <label>
           <input
             type="checkbox"
@@ -153,7 +157,7 @@ const MapWithFilters = () => {
         </label>
       </div>
 
-      <div className="map-container" style={{ height: "500px", width: "100%" }}>
+      <div style={{ height: "500px", width: "100%" }}>
         <APIProvider apiKey={GOOGLE_MAPS_API_KEY}>
           <Map
             style={{ height: "100%", width: "100%" }}
@@ -196,7 +200,7 @@ const MapWithFilters = () => {
                 position={{ lat: loc.lat, lng: loc.lng }}
                 title={loc.name}
                 icon={
-                  loc.icon
+                  loc.icon && typeof window !== "undefined" && window.google
                     ? { url: loc.icon, scaledSize: new window.google.maps.Size(40, 40) }
                     : undefined
                 }
@@ -212,7 +216,9 @@ const MapWithFilters = () => {
                 <div>
                   <h3>{selectedLocation.name}</h3>
                   <p>{selectedLocation.description}</p>
-                  <a href={selectedLocation.url} target="_blank" rel="noreferrer">Voir l'événement</a>
+                  <a href={selectedLocation.url} target="_blank" rel="noreferrer">
+                    Voir l'événement
+                  </a>
                 </div>
               </InfoWindow>
             )}
@@ -221,6 +227,6 @@ const MapWithFilters = () => {
       </div>
     </div>
   );
-};
+}
 
 export default MapWithFilters;
