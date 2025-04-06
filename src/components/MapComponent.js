@@ -5,7 +5,7 @@ import axios from "axios";
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
 const API_URL = process.env.NEXT_PUBLIC_WP_API_URL || "/api/proxy";
 const parisCoordinates = { lat: 48.8566, lng: 2.3522 };
-console.log(API_URL);
+console.log("goole key ",GOOGLE_MAPS_API_KEY);
 
 
 const artistIcons = {
