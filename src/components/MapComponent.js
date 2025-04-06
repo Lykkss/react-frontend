@@ -60,6 +60,11 @@ const MapWithFilters = () => {
 
   useEffect(() => {
     const geocodeAddress = async (venue) => {
+      if (!venue || !venue.address || !venue.city || !venue.country) {
+        console.warn("Adresse incomplète ou manquante", venue);
+        return null;
+      }
+
       const fullAddress = `${venue.address}, ${venue.city}, ${venue.country}`;
       const cacheKey = `geo-${fullAddress}`;
       const cached = localStorage.getItem(cacheKey);
@@ -70,7 +75,10 @@ const MapWithFilters = () => {
           params: { address: fullAddress, key: GOOGLE_MAPS_API_KEY },
         });
 
-        if (res.data.status !== "OK") return null;
+        if (res.data.status !== "OK") {
+          console.warn("Erreur geocoding Google:", res.data.error_message);
+          return null;
+        }
 
         const coords = res.data.results[0]?.geometry?.location;
         if (coords) {
@@ -78,7 +86,7 @@ const MapWithFilters = () => {
           return coords;
         }
       } catch (err) {
-        console.warn("Erreur geocodage:", fullAddress, err.message);
+        console.error("❌ Geocoding FAILED:", err.message);
       }
       return null;
     };
@@ -95,8 +103,6 @@ const MapWithFilters = () => {
         }
 
         const venue = event.venue;
-        if (!venue || !venue.address || !venue.city || !venue.country) return null;
-
         const coords = await geocodeAddress(venue);
         if (coords) {
           return {
