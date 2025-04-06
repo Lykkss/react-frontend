@@ -6,14 +6,6 @@ const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
 const API_URL = process.env.NEXT_PUBLIC_WP_API_URL || "/api/proxy/events";
 const parisCoordinates = { lat: 48.8566, lng: 2.3522 };
 
-const hardcodedCoords = {
-  48: { lat: 48.892, lng: 2.370 },
-  50: { lat: 48.893, lng: 2.371 },
-  71: { lat: 48.894, lng: 2.369 },
-  63: { lat: 48.895, lng: 2.368 },
-  69: { lat: 48.896, lng: 2.367 },
-};
-
 const artistIcons = {
   48: "https://img.icons8.com/color/48/dj.png",
   50: "https://img.icons8.com/color/48/rock-music.png",
@@ -68,30 +60,62 @@ const MapWithFilters = () => {
   }, []);
 
   useEffect(() => {
-    const filtered = events
-      .filter((event) => hardcodedCoords[event.id])
-      .filter((event) => {
+    const geocodeAddress = async (venue) => {
+      const fullAddress = `${venue.address}, ${venue.city}, ${venue.country}`;
+      const cacheKey = `geo-${fullAddress}`;
+      const cached = localStorage.getItem(cacheKey);
+
+      if (cached) return JSON.parse(cached);
+
+      try {
+        const res = await axios.get("https://maps.googleapis.com/maps/api/geocode/json", {
+          params: { address: fullAddress, key: GOOGLE_MAPS_API_KEY },
+        });
+        const coords = res.data.results[0]?.geometry?.location;
+        if (coords) {
+          localStorage.setItem(cacheKey, JSON.stringify(coords));
+          return coords;
+        }
+      } catch (err) {
+        console.warn("⚠️ Échec géocodage:", fullAddress, err);
+      }
+      return null;
+    };
+
+    const filterAndGeocode = async () => {
+      const filtered = [];
+
+      for (const event of events) {
         if (categoryFilter !== "all") {
-          const categories = event.categories?.map((c) => c.name) || [];
-          if (!categories.includes(categoryFilter)) return false;
+          const catNames = event.categories?.map((c) => c.name) || [];
+          if (!catNames.includes(categoryFilter)) continue;
         }
         if (dateFilter) {
           const eventDate = new Date(event.start_date).toISOString().split("T")[0];
-          return eventDate === dateFilter;
+          if (eventDate !== dateFilter) continue;
         }
-        return true;
-      })
-      .map((event) => ({
-        id: event.id,
-        lat: hardcodedCoords[event.id].lat,
-        lng: hardcodedCoords[event.id].lng,
-        name: event.venue?.venue || "Concert",
-        description: `🎤 ${event.title}`,
-        url: event.url,
-        icon: artistIcons[event.id],
-      }));
 
-    setFilteredConcerts(filtered);
+        const venue = event.venue;
+        if (!venue) continue;
+
+        const coords = await geocodeAddress(venue);
+        if (coords) {
+          filtered.push({
+            id: event.id,
+            lat: coords.lat,
+            lng: coords.lng,
+            name: venue.venue,
+            description: `🎤 ${event.title}`,
+            url: event.url,
+            icon: artistIcons[event.id] || undefined,
+          });
+        }
+      }
+
+      setFilteredConcerts(filtered);
+    };
+
+    if (events.length) filterAndGeocode();
   }, [events, categoryFilter, dateFilter]);
 
   return (
@@ -174,7 +198,7 @@ const MapWithFilters = () => {
                 key={loc.id}
                 position={{ lat: loc.lat, lng: loc.lng }}
                 title={loc.name}
-                icon={{ url: loc.icon, scaledSize: new window.google.maps.Size(40, 40) }}
+                icon={loc.icon ? { url: loc.icon, scaledSize: new window.google.maps.Size(40, 40) } : undefined}
                 onClick={() => setSelectedLocation(loc)}
               />
             ))}
