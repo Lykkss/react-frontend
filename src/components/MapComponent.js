@@ -2,9 +2,9 @@ import React, { useState, useEffect } from "react";
 import { Map, APIProvider, Marker, InfoWindow } from "@vis.gl/react-google-maps";
 import axios from "axios";
 
-const GOOGLE_MAPS_API_KEY = "AIzaSyBp3CW6pCqZU-zFe-oL2zL7NF2ZPJ6B-1c";
+const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
 const API_URL = process.env.NEXT_PUBLIC_WP_API_URL || "/api/proxy";
-const parisCoordinates = { lat: 48.89243438749084, lng: 2.3940741223491946 };
+const parisCoordinates = { lat: 48.8566, lng: 2.3522 };
 
 const artistIcons = {
   48: "https://img.icons8.com/color/48/dj.png",
@@ -14,16 +14,21 @@ const artistIcons = {
   69: "https://img.icons8.com/color/48/music.png",
 };
 
-const staticIcons = {
-  toilette: "https://img.icons8.com/emoji/48/toilet-emoji.png",
-  buvette: "https://img.icons8.com/emoji/48/beer-mug.png",
-};
+const toiletIcon = "https://img.icons8.com/ios-filled/50/wc.png";
+const buvetteIcon = "https://img.icons8.com/color/48/beer.png";
 
+/**
+ * Parse une chaîne de type "<p>latitude | longitude</p>"
+ */
 export function parseLocationString(rawString) {
   try {
     if (!rawString) throw new Error("Chaîne vide");
-    const cleaned = rawString.replace(/<\/?[^>]+(>|$)/g, "").trim();
-    const parts = cleaned.split("|").map((part) => part.trim());
+
+    const cleaned = rawString
+      .replace(/<\/?[^>]+(>|$)/g, "") // supprime les balises HTML
+      .trim();
+
+    const parts = cleaned.split('|').map(part => part.trim());
 
     if (parts.length !== 2) {
       throw new Error(`Format invalide. Attendu: "latitude | longitude". Reçu: "${cleaned}"`);
@@ -39,7 +44,7 @@ export function parseLocationString(rawString) {
 
     return { latitude, longitude };
   } catch (error) {
-    console.error("Erreur lors du parsing de la chaîne :", error.message);
+    console.error('Erreur lors du parsing de la chaîne :', error.message);
     throw error;
   }
 }
@@ -48,10 +53,11 @@ const MapWithFilters = () => {
   const [showToilettes, setShowToilettes] = useState(false);
   const [showBuvettes, setShowBuvettes] = useState(false);
   const [events, setEvents] = useState([]);
+  const [toilettes, setToilettes] = useState([]);
+  const [buvettes, setBuvettes] = useState([]);
+  const [mappedToilettes, setMappedToilettes] = useState([]);
+  const [mappedBuvettes, setMappedBuvettes] = useState([]);
   const [filteredConcerts, setFilteredConcerts] = useState([]);
-  const [toilettesData, setToilettesData] = useState([]);
-  const [buvettesData, setBuvettesData] = useState([]);
-  const [scenesData, setScenesData] = useState([]);
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [userLocation, setUserLocation] = useState(null);
   const [categoryFilter, setCategoryFilter] = useState("all");
@@ -80,55 +86,90 @@ const MapWithFilters = () => {
         setEvents(data);
 
         const cats = new Set();
-        const toilettes = [];
-        const buvettes = [];
-        const scenes = [];
-
         data.forEach((e) => {
           e.categories?.forEach((c) => cats.add(c.name));
-
-          const rawLoc = e.venue?.description;
-          if (!rawLoc) return;
-
-          try {
-            const { latitude, longitude } = parseLocationString(rawLoc);
-            const base = {
-              id: e.id,
-              lat: latitude,
-              lng: longitude,
-              name: e.venue?.venue || e.title,
-              description: e.title || "Pas de description disponible",
-              url: e.url || null,
-              icon: artistIcons[e.id],
-            };
-
-            const title = e.title.toLowerCase();
-            if (title.includes("toilette")) {
-              toilettes.push(base);
-            } else if (title.includes("buvette")) {
-              buvettes.push(base);
-            } else if (title.includes("scène") || title.includes("scene")) {
-              scenes.push(base);
-            }
-          } catch (err) {
-            console.warn("Erreur de parsing pour:", e.title);
-          }
         });
-
         setCategories(["all", ...Array.from(cats)]);
-        setToilettesData(toilettes);
-        setBuvettesData(buvettes);
-        setScenesData(scenes);
       } catch (err) {
         console.error("Erreur chargement événements:", err);
       }
     };
-
     fetchEvents();
   }, []);
 
   useEffect(() => {
-    const filterConcerts = async () => {
+    const fetchExtras = async () => {
+      try {
+        const [toilRes, buvRes] = await Promise.all([
+          axios.get(`${API_URL}/toilettes`),
+          axios.get(`${API_URL}/buvettes`)
+        ]);
+        setToilettes(toilRes.data || []);
+        setBuvettes(buvRes.data || []);
+      } catch (err) {
+        console.error("Erreur chargement toilettes/buvettes:", err);
+      }
+    };
+    fetchExtras();
+  }, []);
+
+  useEffect(() => {
+    const parseExtras = (rawList, label) => {
+      return rawList.map((item, i) => {
+        try {
+          const { latitude, longitude } = parseLocationString(item.description);
+          return {
+            id: `${label}-${i}`,
+            lat: latitude,
+            lng: longitude,
+            name: item.title?.rendered || label,
+            type: label
+          };
+        } catch (err) {
+          console.warn(`❌ Parsing échoué pour ${label}`, item);
+          return null;
+        }
+      }).filter(Boolean);
+    };
+
+    setMappedToilettes(parseExtras(toilettes, "toilette"));
+    setMappedBuvettes(parseExtras(buvettes, "buvette"));
+  }, [toilettes, buvettes]);
+
+  useEffect(() => {
+    const geocodeAddress = async (venue) => {
+      if (!venue || !venue.address || !venue.city || !venue.country) {
+        console.warn("Adresse incomplète ou manquante", venue);
+        return null;
+      }
+
+      const fullAddress = `${venue.address}, ${venue.city}, ${venue.country}`;
+      const cacheKey = `geo-${fullAddress}`;
+      const cached = localStorage.getItem(cacheKey);
+      if (cached) return JSON.parse(cached);
+
+      try {
+        const res = await axios.get("https://maps.googleapis.com/maps/api/geocode/json", {
+          params: { address: fullAddress, key: GOOGLE_MAPS_API_KEY },
+        });
+
+        if (res.data.status !== "OK") {
+          console.warn("Erreur geocoding Google:", res.data.error_message);
+          return null;
+        }
+
+        const coords = res.data.results[0]?.geometry?.location;
+        if (coords) {
+          localStorage.setItem(cacheKey, JSON.stringify(coords));
+          return coords;
+        }
+      } catch (err) {
+        console.error("❌ Geocoding FAILED:", err.message);
+      }
+      return null;
+    };
+
+    const filterAndGeocode = async () => {
       const promises = events.map(async (event) => {
         if (categoryFilter !== "all") {
           const catNames = event.categories?.map((c) => c.name) || [];
@@ -141,29 +182,40 @@ const MapWithFilters = () => {
         }
 
         const rawLoc = event.venue?.description;
-        if (!rawLoc) return null;
+        let coords = null;
 
-        try {
-          const parsed = parseLocationString(rawLoc);
+        if (rawLoc) {
+          try {
+            const parsed = parseLocationString(rawLoc);
+            coords = { lat: parsed.latitude, lng: parsed.longitude };
+          } catch (err) {
+            console.warn("📛 Parsing échoué pour l'événement :", event.title);
+          }
+        }
+
+        if (!coords) {
+          coords = await geocodeAddress(event.venue);
+        }
+
+        if (coords) {
           return {
             id: event.id,
-            lat: parsed.latitude,
-            lng: parsed.longitude,
-            name: event.venue?.venue || event.title,
-            description: event.title || "Pas de description disponible",
-            url: event.url || null,
+            lat: coords.lat,
+            lng: coords.lng,
+            name: event.venue?.venue || "Lieu inconnu",
+            url: event.url,
             icon: artistIcons[event.id],
           };
-        } catch {
-          return null;
         }
+
+        return null;
       });
 
       const results = await Promise.all(promises);
       setFilteredConcerts(results.filter(Boolean));
     };
 
-    if (events.length) filterConcerts();
+    if (events.length) filterAndGeocode();
   }, [events, categoryFilter, dateFilter]);
 
   return (
@@ -172,14 +224,16 @@ const MapWithFilters = () => {
         <label>Catégorie : </label>
         <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
           {categories.map((cat) => (
-            <option key={cat} value={cat}>
-              {cat}
-            </option>
+            <option key={cat} value={cat}>{cat}</option>
           ))}
         </select>
 
         <label style={{ marginLeft: 20 }}>Date : </label>
-        <input type="date" value={dateFilter} onChange={(e) => setDateFilter(e.target.value)} />
+        <input
+          type="date"
+          value={dateFilter}
+          onChange={(e) => setDateFilter(e.target.value)}
+        />
       </div>
 
       <div className="checkboxes" style={{ marginBottom: 10 }}>
@@ -208,7 +262,36 @@ const MapWithFilters = () => {
             defaultZoom={13}
             defaultCenter={userLocation || parisCoordinates}
           >
-            {/* Concerts */}
+            {showToilettes && mappedToilettes.map((t) => (
+              <Marker
+                key={t.id}
+                position={{ lat: t.lat, lng: t.lng }}
+                title={t.name}
+                icon={{ url: toiletIcon, scaledSize: new window.google.maps.Size(40, 40) }}
+                onClick={() => setSelectedLocation({
+                  name: t.name,
+                  lat: t.lat,
+                  lng: t.lng,
+                  description: "Toilettes publiques",
+                })}
+              />
+            ))}
+
+            {showBuvettes && mappedBuvettes.map((b) => (
+              <Marker
+                key={b.id}
+                position={{ lat: b.lat, lng: b.lng }}
+                title={b.name}
+                icon={{ url: buvetteIcon, scaledSize: new window.google.maps.Size(40, 40) }}
+                onClick={() => setSelectedLocation({
+                  name: b.name,
+                  lat: b.lat,
+                  lng: b.lng,
+                  description: "Buvette",
+                })}
+              />
+            ))}
+
             {filteredConcerts.map((loc) => (
               <Marker
                 key={loc.id}
@@ -223,47 +306,6 @@ const MapWithFilters = () => {
               />
             ))}
 
-            {/* Toilettes */}
-            {showToilettes &&
-              toilettesData.map((t) => (
-                <Marker
-                  key={t.id}
-                  position={{ lat: t.lat, lng: t.lng }}
-                  title={t.name}
-                  icon={{
-                    url: staticIcons.toilette,
-                    scaledSize: new window.google.maps.Size(40, 40),
-                  }}
-                  onClick={() => setSelectedLocation(t)}
-                />
-              ))}
-
-            {/* Buvettes */}
-            {showBuvettes &&
-              buvettesData.map((b) => (
-                <Marker
-                  key={b.id}
-                  position={{ lat: b.lat, lng: b.lng }}
-                  title={b.name}
-                  icon={{
-                    url: staticIcons.buvette,
-                    scaledSize: new window.google.maps.Size(40, 40),
-                  }}
-                  onClick={() => setSelectedLocation(b)}
-                />
-              ))}
-
-            {/* Scènes */}
-            {scenesData.map((s) => (
-              <Marker
-                key={s.id}
-                position={{ lat: s.lat, lng: s.lng }}
-                title={s.name}
-                onClick={() => setSelectedLocation(s)}
-              />
-            ))}
-
-            {/* InfoWindow */}
             {selectedLocation && (
               <InfoWindow
                 position={{ lat: selectedLocation.lat, lng: selectedLocation.lng }}
@@ -274,7 +316,7 @@ const MapWithFilters = () => {
                   <p>{selectedLocation.description}</p>
                   {selectedLocation.url && (
                     <a href={selectedLocation.url} target="_blank" rel="noreferrer">
-                      Voir plus
+                      Voir l'événement
                     </a>
                   )}
                 </div>
