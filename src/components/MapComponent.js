@@ -14,11 +14,16 @@ const artistIcons = {
   69: "https://img.icons8.com/color/48/music.png",
 };
 
+const staticIcons = {
+  toilette: "https://img.icons8.com/emoji/48/toilet-emoji.png",
+  buvette: "https://img.icons8.com/emoji/48/beer-mug.png",
+};
+
 export function parseLocationString(rawString) {
   try {
     if (!rawString) throw new Error("Chaîne vide");
     const cleaned = rawString.replace(/<\/?[^>]+(>|$)/g, "").trim();
-    const parts = cleaned.split('|').map(part => part.trim());
+    const parts = cleaned.split("|").map((part) => part.trim());
 
     if (parts.length !== 2) {
       throw new Error(`Format invalide. Attendu: "latitude | longitude". Reçu: "${cleaned}"`);
@@ -34,7 +39,7 @@ export function parseLocationString(rawString) {
 
     return { latitude, longitude };
   } catch (error) {
-    console.error('Erreur lors du parsing de la chaîne :', error.message);
+    console.error("Erreur lors du parsing de la chaîne :", error.message);
     throw error;
   }
 }
@@ -118,6 +123,7 @@ const MapWithFilters = () => {
         console.error("Erreur chargement événements:", err);
       }
     };
+
     fetchEvents();
   }, []);
 
@@ -165,16 +171,14 @@ const MapWithFilters = () => {
         <label>Catégorie : </label>
         <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
           {categories.map((cat) => (
-            <option key={cat} value={cat}>{cat}</option>
+            <option key={cat} value={cat}>
+              {cat}
+            </option>
           ))}
         </select>
 
         <label style={{ marginLeft: 20 }}>Date : </label>
-        <input
-          type="date"
-          value={dateFilter}
-          onChange={(e) => setDateFilter(e.target.value)}
-        />
+        <input type="date" value={dateFilter} onChange={(e) => setDateFilter(e.target.value)} />
       </div>
 
       <div className="checkboxes" style={{ marginBottom: 10 }}>
@@ -225,6 +229,10 @@ const MapWithFilters = () => {
                   key={t.id}
                   position={{ lat: t.lat, lng: t.lng }}
                   title={t.name}
+                  icon={{
+                    url: staticIcons.toilette,
+                    scaledSize: new window.google.maps.Size(40, 40),
+                  }}
                   onClick={() => setSelectedLocation(t)}
                 />
               ))}
@@ -236,6 +244,10 @@ const MapWithFilters = () => {
                   key={b.id}
                   position={{ lat: b.lat, lng: b.lng }}
                   title={b.name}
+                  icon={{
+                    url: staticIcons.buvette,
+                    scaledSize: new window.google.maps.Size(40, 40),
+                  }}
                   onClick={() => setSelectedLocation(b)}
                 />
               ))}
