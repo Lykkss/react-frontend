@@ -2,14 +2,14 @@ import React, { useState, useEffect } from "react";
 import { Map, APIProvider, Marker, InfoWindow } from "@vis.gl/react-google-maps";
 import axios from "axios";
 
-const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
+const GOOGLE_MAPS_API_KEY = "AIzaSyBp3CW6pCqZU-zFe-oL2zL7NF2ZPJ6B-1c";
 const API_URL = process.env.NEXT_PUBLIC_WP_API_URL || "/api/proxy";
-const parisCoordinates = { lat: 48.8566, lng: 2.3522 };
+const parisCoordinates = { lat: 48.89243438749084, lng: 2.3940741223491946 };
 
 const artistIcons = {
   48: "https://img.icons8.com/color/48/dj.png",
   50: "https://img.icons8.com/color/48/rock-music.png",
-  71: "https://img.icons8.com/color/48/techno.png",
+  71: "https://img.icons8.com/emoji/48/musical-note-emoji.png",
   63: "https://img.icons8.com/color/48/orchestra.png",
   69: "https://img.icons8.com/color/48/music.png",
 };
@@ -123,6 +123,7 @@ const MapWithFilters = () => {
             console.warn("📛 Parsing échoué pour l'événement :", event.title);
           }
         }
+        
 
         if (coords) {
           return {
