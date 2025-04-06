@@ -123,6 +123,7 @@ const MapWithFilters = () => {
             console.warn("📛 Parsing échoué pour l'événement :", event.title);
           }
         }
+        
 
         if (coords) {
           return {
