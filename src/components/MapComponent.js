@@ -5,8 +5,6 @@ import axios from "axios";
 const GOOGLE_MAPS_API_KEY = "AIzaSyBp3CW6pCqZU-zFe-oL2zL7NF2ZPJ6B-1c";
 const API_URL = process.env.NEXT_PUBLIC_WP_API_URL || "/api/proxy";
 const parisCoordinates = { lat: 48.8566, lng: 2.3522 };
-console.log("goole key ",GOOGLE_MAPS_API_KEY);
-
 
 const artistIcons = {
   48: "https://img.icons8.com/color/48/dj.png",
@@ -229,7 +227,7 @@ const MapWithFilters = () => {
           <Map
             style={{ height: "100%", width: "100%" }}
             defaultZoom={13}
-            defaultCenter={userLocation || parisCoordinates}
+            defaultCenter={parisCoordinates}
           >
             {showToilettes && (
               <Marker
