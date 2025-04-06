@@ -5,6 +5,8 @@ import axios from "axios";
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
 const API_URL = process.env.NEXT_PUBLIC_WP_API_URL || "/api/proxy";
 const parisCoordinates = { lat: 48.8566, lng: 2.3522 };
+console.log(API_URL);
+
 
 const artistIcons = {
   48: "https://img.icons8.com/color/48/dj.png",
@@ -13,6 +15,51 @@ const artistIcons = {
   63: "https://img.icons8.com/color/48/orchestra.png",
   69: "https://img.icons8.com/color/48/music.png",
 };
+
+/**
+ * Parse une chaîne de type "description | longitude | latitude"
+ * @param {string} rawString - La chaîne brute à parser
+ * @returns {{ description: string, longitude: number, latitude: number }}
+ * @throws {Error} Si le format est invalide ou les coordonnées ne sont pas convertibles
+ */
+/**
+ * Parse une chaîne de type "<p>latitude | longitude</p>"
+ * @param {string} rawString - La chaîne brute à parser
+ * @returns {{ latitude: number, longitude: number }}
+ * @throws {Error} Si le format est invalide ou les coordonnées ne sont pas convertibles
+ */
+export function parseLocationString(rawString) {
+  try {
+    if (!rawString) throw new Error("Chaîne vide");
+
+    // Nettoyage de la balise <p> et autres caractères HTML
+    const cleaned = rawString
+      .replace(/<\/?[^>]+(>|$)/g, "") // supprime les balises HTML
+      .trim();
+
+    const parts = cleaned.split('|').map(part => part.trim());
+
+    if (parts.length !== 2) {
+      throw new Error(`Format invalide. Attendu: "latitude | longitude". Reçu: "${cleaned}"`);
+    }
+
+    const [latStr, lonStr] = parts;
+    const latitude = parseFloat(latStr);
+    const longitude = parseFloat(lonStr);
+
+    if (isNaN(latitude) || isNaN(longitude)) {
+      throw new Error(`Latitude ou longitude non valides. latitude: "${latStr}", longitude: "${lonStr}"`);
+    }
+
+    return {
+      latitude,
+      longitude
+    };
+  } catch (error) {
+    console.error('Erreur lors du parsing de la chaîne :', error.message);
+    throw error;
+  }
+}
 
 const MapWithFilters = () => {
   const [showToilettes, setShowToilettes] = useState(false);
@@ -75,8 +122,6 @@ const MapWithFilters = () => {
           params: { address: fullAddress, key: GOOGLE_MAPS_API_KEY },
         });
 
-        console.log("📦 Réponse geocoding:", res.data);
-
         if (res.data.status !== "OK") {
           console.warn("Erreur geocoding Google:", res.data.error_message);
           return null;
@@ -99,24 +144,39 @@ const MapWithFilters = () => {
           const catNames = event.categories?.map((c) => c.name) || [];
           if (!catNames.includes(categoryFilter)) return null;
         }
+
         if (dateFilter) {
           const eventDate = new Date(event.start_date).toISOString().split("T")[0];
           if (eventDate !== dateFilter) return null;
         }
 
-        const venue = event.venue;
-        const coords = await geocodeAddress(venue);
+        const rawLoc = event.venue?.description;
+        let coords = null;
+
+        if (rawLoc) {
+          try {
+            const parsed = parseLocationString(rawLoc);
+            coords = { lat: parsed.latitude, lng: parsed.longitude };
+          } catch (err) {
+            console.warn("📛 Parsing échoué pour l'événement :", event.title);
+          }
+        }
+
+        if (!coords) {
+          coords = await geocodeAddress(event.venue);
+        }
+
         if (coords) {
           return {
             id: event.id,
             lat: coords.lat,
             lng: coords.lng,
-            name: venue.venue,
-            description: `🎤 ${event.title}`,
+            name: event.venue?.venue || "Lieu inconnu",
             url: event.url,
             icon: artistIcons[event.id],
           };
         }
+
         return null;
       });
 
