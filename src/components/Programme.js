@@ -12,7 +12,7 @@ const Programme = () => {
   useEffect(() => {
     const fetchConcerts = async () => {
       try {
-        const response = await fetch(`158.69.54.81:8500/concerts/`, {
+        const response = await fetch(`http://158.69.54.81:8500/concerts/`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
