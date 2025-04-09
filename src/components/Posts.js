@@ -33,6 +33,7 @@ const Posts = () => {
         return <div className="text-red-500">Erreur : {error}</div>;
     }
 
+    
     return (
         <div>
             <h1 className="text-3xl font-bold sm:text-4xl text-center mb-8">Articles</h1>
