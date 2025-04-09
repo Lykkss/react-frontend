@@ -75,7 +75,7 @@ const Programme = () => {
               <p className="text-gray-600">
                 Date de fin : {concert.end_date ? new Date(concert.end_date).toLocaleString() : "Non spécifiée"}
               </p>
-              <Link to={`/concert/${concert.id}`} className="mt-4 inline-block text-indigo-900 hover:underline">
+              <Link to={`/concerts/${concert.id}`} className="mt-4 inline-block text-indigo-900 hover:underline">
                 Voir plus sur ce concert
               </Link>
             </div>
