@@ -1,9 +1,13 @@
+// src/components/MapComponent.js
 import React, { useState, useEffect } from "react";
 import { Map, APIProvider, Marker, InfoWindow } from "@vis.gl/react-google-maps";
 import axios from "axios";
 
-const GOOGLE_MAPS_API_KEY = "AIzaSyBp3CW6pCqZU-zFe-oL2zL7NF2ZPJ6B-1c";
-const API_URL = process.env.NEXT_PUBLIC_WP_API_URL || "/api/proxy";
+// Clé Google Maps depuis la variable d'environnement ou la valeur par défaut
+const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
+// Utilisation de NEXT_PUBLIC_API_URL pour pointer vers votre back-end Django
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "/api/proxy";
+// Coordonnées par défaut (exemple : Paris)
 const parisCoordinates = { lat: 48.89243438749084, lng: 2.3940741223491946 };
 
 const artistIcons = {
@@ -20,21 +24,18 @@ const iconwcandfood = {
 };
 
 /**
- * Parse une chaîne de type "<p>latitude | longitude</p>"
- * @param {string} rawString - La chaîne brute à parser
+ * Fonction de parsing qui attend une chaîne du format "<p>latitude | longitude</p>"
+ * @param {string} rawString - La chaîne à parser
  * @returns {{ latitude: number, longitude: number }}
- * @throws {Error} Si le format est invalide ou les coordonnées ne sont pas convertibles
+ * @throws {Error} Si le format est invalide ou les coordonnées sont non convertibles
  */
 export function parseLocationString(rawString) {
   try {
     if (!rawString) throw new Error("Chaîne vide");
 
-    // Supprimer les balises HTML
-    const cleaned = rawString
-      .replace(/<\/?[^>]+(>|$)/g, "")
-      .trim();
-
-    const parts = cleaned.split('|').map(part => part.trim());
+    // Supprime les balises HTML et espaces en trop
+    const cleaned = rawString.replace(/<\/?[^>]+(>|$)/g, "").trim();
+    const parts = cleaned.split("|").map(part => part.trim());
 
     if (parts.length !== 2) {
       throw new Error(`Format invalide. Attendu: "latitude | longitude". Reçu: "${cleaned}"`);
@@ -50,7 +51,7 @@ export function parseLocationString(rawString) {
 
     return { latitude, longitude };
   } catch (error) {
-    console.error('Erreur lors du parsing de la chaîne :', error.message);
+    console.error("Erreur lors du parsing de la chaîne :", error.message);
     throw error;
   }
 }
@@ -58,7 +59,7 @@ export function parseLocationString(rawString) {
 const MapWithFilters = () => {
   const [showToilettes, setShowToilettes] = useState(false);
   const [showBuvettes, setShowBuvettes] = useState(false);
-  const [events, setEvents] = useState([]);
+  const [concerts, setConcerts] = useState([]);
   const [filteredConcerts, setFilteredConcerts] = useState([]);
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [userLocation, setUserLocation] = useState(null);
@@ -66,6 +67,7 @@ const MapWithFilters = () => {
   const [dateFilter, setDateFilter] = useState("");
   const [categories, setCategories] = useState([]);
 
+  // Récupération de la localisation utilisateur
   useEffect(() => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -80,71 +82,78 @@ const MapWithFilters = () => {
     }
   }, []);
 
+  // Récupération des concerts depuis l'API Django
   useEffect(() => {
-    const fetchEvents = async () => {
+    const fetchConcerts = async () => {
       try {
-        const res = await axios.get(`${API_URL}/events`);
-        const data = res.data.events || [];
-        setEvents(data);
+        // Ici, nous appelons l'endpoint /concerts/ sur votre API
+        const res = await axios.get(`${API_URL}/concerts`);
+        // On suppose que l'API renvoie un tableau de concerts
+        const data = res.data || [];
+        setConcerts(data);
 
+        // Récupération des catégories
         const cats = new Set();
         data.forEach((e) => {
           e.categories?.forEach((c) => cats.add(c.name));
         });
         setCategories(["all", ...Array.from(cats)]);
       } catch (err) {
-        console.error("Erreur chargement événements:", err);
+        console.error("Erreur chargement concerts :", err);
       }
     };
-    fetchEvents();
+
+    fetchConcerts();
   }, []);
 
+  // Filtrage et parsing des coordonnées pour les concerts affichés sur la carte
   useEffect(() => {
     const filterAndParse = async () => {
-      const results = await Promise.all(events.map(async (event) => {
-        if (categoryFilter !== "all") {
-          const catNames = event.categories?.map((c) => c.name) || [];
-          if (!catNames.includes(categoryFilter)) return null;
-        }
-
-        if (dateFilter) {
-          const eventDate = new Date(event.start_date).toISOString().split("T")[0];
-          if (eventDate !== dateFilter) return null;
-        }
-
-        const rawLoc = event.venue?.description;
-        let coords = null;
-
-        if (rawLoc) {
-          try {
-            const parsed = parseLocationString(rawLoc);
-            coords = { lat: parsed.latitude, lng: parsed.longitude };
-          } catch (err) {
-            console.warn("📛 Parsing échoué pour l'événement :", event.title);
+      const results = await Promise.all(
+        concerts.map(async (concert) => {
+          // Filtrage par catégorie
+          if (categoryFilter !== "all") {
+            const catNames = concert.categories?.map((c) => c.name) || [];
+            if (!catNames.includes(categoryFilter)) return null;
           }
-        }
-        
 
-        if (coords) {
-          return {
-            id: event.id,
-            lat: coords.lat,
-            lng: coords.lng,
-            name: event.venue?.venue || "Lieu inconnu",
-            description: `🎤 ${event.title}`,
-            url: event.url,
-            icon: artistIcons[event.id],
-          };
-        }
+          // Filtrage par date
+          if (dateFilter) {
+            const eventDate = new Date(concert.start_date).toISOString().split("T")[0];
+            if (eventDate !== dateFilter) return null;
+          }
 
-        return null;
-      }));
+          // Récupération des coordonnées à partir de la description de venue
+          const rawLoc = concert.venue?.description;
+          let coords = null;
+          if (rawLoc) {
+            try {
+              const parsed = parseLocationString(rawLoc);
+              coords = { lat: parsed.latitude, lng: parsed.longitude };
+            } catch (err) {
+              console.warn("📛 Parsing échoué pour le concert:", concert.title);
+            }
+          }
+          if (coords) {
+            return {
+              id: concert.id,
+              lat: coords.lat,
+              lng: coords.lng,
+              name: concert.venue?.venue || "Lieu inconnu",
+              description: `🎤 ${concert.title}`,
+              url: concert.url,
+              icon: artistIcons[concert.id], // Ajustez selon votre logique d'icon
+            };
+          }
+          return null;
+        })
+      );
 
       setFilteredConcerts(results.filter(Boolean));
     };
 
-    if (events.length) filterAndParse();
-  }, [events, categoryFilter, dateFilter]);
+    if (concerts.length) filterAndParse();
+  }, [concerts, categoryFilter, dateFilter]);
 
   return (
     <div>
@@ -152,10 +161,11 @@ const MapWithFilters = () => {
         <label>Catégorie : </label>
         <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
           {categories.map((cat) => (
-            <option key={cat} value={cat}>{cat}</option>
+            <option key={cat} value={cat}>
+              {cat}
+            </option>
           ))}
         </select>
-
         <label style={{ marginLeft: 20 }}>Date : </label>
         <input
           type="date"

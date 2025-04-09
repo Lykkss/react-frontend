@@ -1,5 +1,6 @@
+// src/components/post.js
 import React, { useEffect, useState } from 'react';
-import wpApiSettings from '../config';
+import config from '../config'; 
 
 const Posts = () => {
     const [posts, setPosts] = useState([]);
@@ -8,7 +9,15 @@ const Posts = () => {
 
     const fetchPosts = async () => {
         try {
-            const response = await fetch(`${wpApiSettings.baseUrl}/wp-json/wp/v2/posts`);
+            // Appel vers l'endpoint /posts/ de votre back-end Django
+            const response = await fetch(`${config.baseUrl}/posts/`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    // Ajoutez un header Authorization si votre API le requiert, par exemple :
+                    // 'Authorization': `Token ${localStorage.getItem("token")}`,
+                },
+            });
             if (!response.ok) {
                 throw new Error(`Erreur ${response.status}: Impossible de récupérer les posts.`);
             }
@@ -37,10 +46,10 @@ const Posts = () => {
         <div>
             <h1 className="text-3xl font-bold sm:text-4xl text-center mb-8">Articles</h1>
             <ul className="list-none">
-                {posts.map(post => (
+                {posts.map((post) => (
                     <li key={post.id} className="p-4 border-b">
-                        <h2 className="text-xl font-semibold">{post.title.rendered}</h2>
-                        <p>{post.excerpt.rendered}</p>
+                        <h2 className="text-xl font-semibold">{post.title}</h2>
+                        <p>{post.excerpt}</p>
                         <p><strong>Date de publication:</strong> {new Date(post.date).toLocaleDateString()}</p>
                         <a href={post.link} className="text-blue-600 hover:underline">Lire l'article</a>
                     </li>
