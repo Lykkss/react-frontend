@@ -12,10 +12,11 @@ const Programme = () => {
   useEffect(() => {
     const fetchConcerts = async () => {
       try {
-        const response = await fetch(`${API_URL}/concerts/`, {
+        const response = await fetch(`158.69.54.81:8500/concerts/`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
+            'Authorization': `Token ${process.env.TOKEN}`,
           },
           credentials: 'include', // Cette option fait envoyer le cookie de session
         });

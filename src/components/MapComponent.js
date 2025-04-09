@@ -87,7 +87,7 @@ const MapWithFilters = () => {
     const fetchConcerts = async () => {
       try {
         // Ici, nous appelons l'endpoint /concerts/ sur votre API
-        const res = await axios.get(`${API_URL}/concerts`);
+        const res = await axios.get(`158.69.54.81:8500/concerts`);
         // On suppose que l'API renvoie un tableau de concerts
         const data = res.data || [];
         setConcerts(data);
