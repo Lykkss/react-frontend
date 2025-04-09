@@ -12,36 +12,31 @@ const Programme = () => {
   useEffect(() => {
     const fetchConcerts = async () => {
       try {
-        // Appel à l'endpoint /concerts/ sur le back-end Django
         const response = await fetch(`${API_URL}/concerts/`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
-            // Vous pouvez ajouter l'authentification ici si nécessaire, par exemple :
-            'Authorization': `Token ${localStorage.getItem('token')}`,
           },
+          credentials: 'include', // Cette option fait envoyer le cookie de session
         });
-
-        // Vérifie que la réponse est du JSON
+  
         const contentType = response.headers.get("content-type");
         if (!contentType || !contentType.includes("application/json")) {
           const text = await response.text();
           console.error("❌ Réponse non-JSON reçue :", text);
           throw new Error("La réponse de l'API n'est pas du JSON.");
         }
-
+  
         if (!response.ok) {
           throw new Error(`HTTP error! Status: ${response.status}`);
         }
-
+  
         const data = await response.json();
         console.log("✅ Données reçues:", data);
-
-        // On suppose ici que l'API renvoie directement un tableau de concerts
         if (data && Array.isArray(data)) {
           setConcerts(data);
         } else {
-          console.error("⚠️ Données incorrectes :", data);
+          console.error("⚠️ Format des données incorrect :", data);
           setError("Aucun concert trouvé ou format incorrect.");
         }
       } catch (err) {
@@ -51,7 +46,7 @@ const Programme = () => {
         setLoading(false);
       }
     };
-
+  
     fetchConcerts();
   }, [API_URL]);
 
