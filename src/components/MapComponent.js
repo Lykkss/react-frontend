@@ -1,7 +1,6 @@
 // src/components/mapComponent.js
 import React, { useState, useEffect } from "react";
 import { Map, APIProvider, Marker, InfoWindow } from "@vis.gl/react-google-maps";
-import { parseLocationString } from "./helpers"; // supposons que parseLocationString soit exporté depuis un helper
 import config from "../config";
 
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
