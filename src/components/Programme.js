@@ -18,7 +18,7 @@ const Programme = () => {
           headers: {
             'Content-Type': 'application/json',
             // Vous pouvez ajouter l'authentification ici si nécessaire, par exemple :
-            // 'Authorization': `Token ${localStorage.getItem('token')}`,
+            'Authorization': `Token ${localStorage.getItem('token')}`,
           },
         });
 
