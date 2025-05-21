@@ -74,16 +74,6 @@ const GroupeDetails = () => {
                 <p className="text-gray-500">
                     <strong>Date de fin :</strong> {new Date(group.end_date).toLocaleString()}
                 </p>
-
-                <h2 className="font-bold mt-8">Commander son billet</h2>
-                <a
-                    href="https://www.ticketmaster.fr/fr"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-8 inline-block rounded bg-gray-900 px-12 py-3 text-sm font-medium text-white transition hover:bg-indigo-800 focus:outline-none focus:ring focus:ring-yellow-400"
-                >
-                    Get Started Today
-                </a>
             </div>
         </div>
     );
