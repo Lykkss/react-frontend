@@ -2,7 +2,6 @@
 
 This project is a React frontend integrated with a WordPress backend. It aims to provide a seamless user experience by leveraging the strengths of both technologies.
 
-
 ## Table of Contents
 - [Installation](#installation)
 - [Usage](#usage)
