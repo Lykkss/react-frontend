@@ -75,17 +75,13 @@ const GroupeDetails = () => {
             {/* Description sans balises <p> */}
             <section aria-labelledby="desc-title" className="mb-6">
               <h2 id="desc-title" className="sr-only">Description de l’événement</h2>
-              <div className="text-gray-700">
-                <strong>Description :</strong>
-                <div
-                  className="mt-2"
-                  dangerouslySetInnerHTML={{
-                    __html: group.description
-                      ? group.description.trim().replace(/<\/ p>/g, '').replace(/<p[^>]*>/g, '')
-                      : 'Aucune description fournie.'
-                  }}
-                />
-              </div>
+              <div className="text-gray-700 mt-2" dangerouslySetInnerHTML={{
+                __html: group.description
+                  ? group.description
+                      .trim()
+                      .replace(/<\/?p[^>]*>/g, '')
+                  : 'Aucune description fournie.'
+              }} />
             </section>
 
             {/* Détails pratiques */}
@@ -135,9 +131,7 @@ const GroupeDetails = () => {
       <footer role="contentinfo" className="text-center py-6">
         <div className="text-sm text-gray-500">
           ©{' '}
-          <time dateTime={new Date().getFullYear().toString()}>
-            {new Date().getFullYear()}
-          </time>{' '}
+          <time dateTime={new Date().getFullYear().toString()}>{new Date().getFullYear()}</time>{' '}
           Live Event™. Tous droits réservés.
         </div>
       </footer>
