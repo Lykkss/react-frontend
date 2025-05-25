@@ -69,7 +69,7 @@ const GroupeDetails = () => {
 
         {/* Contenu de l'événement */}
         {group && (
-          <article className="max-w-lg mx-auto p-6 bg-white border-indigo-950 border-2 rounded-lg shadow-2xl mb-20 z-10">
+          <article className="max-w-lg mx-auto p-6 bg-white rounded-lg shadow-2xl mb-20 z-10">
             <h1 className="text-3xl font-bold mb-4">{group.title}</h1>
 
             {/* Description */}

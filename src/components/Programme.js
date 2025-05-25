@@ -74,7 +74,7 @@ function Programme() {
         {!loading && !error && (
           <section
             aria-labelledby="programme-list"
-            className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"
+            className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 border-indigo-950 border-2"
           >
             <h2 id="programme-list" className="sr-only">
               Liste des événements
