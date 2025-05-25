@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
-import Posts from './components/Posts';
 import Header from './components/Header';
 import FestivalTemplate from './components/FestivalTemplate';
 import TemplateAccueil from './components/TemplateAccueil';
@@ -24,7 +23,6 @@ function App() {
           <Routes>
             <Route path="/" element={<TemplateAccueil />} />
             <Route path="/Festival" element={<FestivalTemplate />} />
-            <Route path="/posts" element={<Posts />} />
             <Route path="/Programme" element={<Programme />} />
             <Route path="/groupe/:id" element={<GroupeDetails />} />
             <Route path="/contact" element={<Contact />} />

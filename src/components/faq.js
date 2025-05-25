@@ -61,39 +61,56 @@ const FAQ = () => {
   ];
 
   return (
-    <section className="py-12 bg-white min-h-screen">
-      <div className="max-w-3xl mx-auto px-4">
-        {/* Titre principal */}
-        <h1 className="text-4xl font-extrabold text-blue-800 mb-6 text-center">
-          Foire aux Questions
-        </h1>
-        <p className="text-center text-black mb-12">
-          Retrouvez ici les réponses aux questions les plus fréquentes.
-        </p>
+    <section
+    className="py-12 bg-white min-h-screen"
+    aria-labelledby="faq-title"
+  >
+    <div className="max-w-3xl mx-auto px-4">
+      <h1
+        id="faq-title"
+        className="text-4xl font-extrabold text-blue-800 mb-6 text-center"
+      >
+        Foire aux Questions
+      </h1>
+      <p className="text-center text-black mb-12">
+        Retrouvez ici les réponses aux questions les plus fréquentes.
+      </p>
 
-        {/* Liste accordéon */}
-        <div className="space-y-4">
-          {faqs.map((faq, idx) => (
-            <details
-              key={idx}
-              className="group bg-white border border-black rounded-lg shadow-sm transition-shadow hover:shadow-md"
+      <div className="space-y-4">
+        {faqs.map((faq, idx) => (
+          <details
+            key={idx}
+            className="group bg-white border border-black rounded-lg shadow-sm transition-shadow hover:shadow-md"
+          >
+            <summary
+              id={`faq-summary-${idx}`}
+              aria-controls={`faq-content-${idx}`}
+              className="cursor-pointer list-none px-6 py-4 flex justify-between items-center focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             >
-              <summary className="cursor-pointer list-none px-6 py-4 flex justify-between items-center">
-                <span className="font-semibold text-lg text-blue-600">
-                  {faq.question}
-                </span>
-                <span className="ml-2 transform transition-transform group-open:rotate-45 text-black">
-                  +
-                </span>
-              </summary>
-              <div className="px-6 pb-4">
-                <p className="text-black">{faq.answer}</p>
-              </div>
-            </details>
-          ))}
-        </div>
+              <span className="font-semibold text-lg text-blue-600">
+                {faq.question}
+              </span>
+              <span
+                className="ml-2 transform transition-transform group-open:rotate-45 text-black"
+                aria-hidden="true"
+              >
+                +
+              </span>
+            </summary>
+
+            <div
+              id={`faq-content-${idx}`}
+              role="region"
+              aria-labelledby={`faq-summary-${idx}`}
+              className="px-6 pb-4"
+            >
+              <p className="text-black">{faq.answer}</p>
+            </div>
+          </details>
+        ))}
       </div>
-    </section>
+    </div>
+  </section>
   );
 };
 

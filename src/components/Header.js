@@ -1,36 +1,50 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 
 function Header() {
+    const location = useLocation();
+
     return (
-        <header className="flex justify-between items-center p-5 bg-black text-white">
+        <header role="banner" className="flex justify-between items-center p-5 bg-black text-white">
+            {/* Logo et lien vers l'accueil avec aria-label */}
             <div className="header-left">
-                <Link to="/" className="text-white no-underline hover:underline">
-                    <h1 className="ml-9 font-semibold">Live Event</h1>
+                <Link
+                    to="/"
+                    aria-label="Aller à la page d’accueil Live Event"
+                    className="focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white"
+                >
+                    <h1 className="ml-9 font-semibold text-xl">Live Event</h1>
                 </Link>
             </div>
-            <nav className="header-right">
-                <ul className="flex list-none m-0 p-0 gap-4">
+
+            {/* Navigation principale avec aria-label */}
+            <nav className="header-right" aria-label="Navigation principale">
+                <ul className="flex gap-4 m-0 p-0">
                     <li>
-                        <a
-                            className="text-white no-underline hover:underline"
-                            href="/festival"
+                        <Link
+                            to="/festival"
+                            className="text-white no-underline hover:underline focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white"
+                            aria-current={location.pathname === '/festival' ? 'page' : undefined}
                         >
                             Festival
-                        </a>
+                        </Link>
                     </li>
                     <li>
                         <Link
-                            to="/Programme" 
-                            className="text-white no-underline hover:underline"
+                            to="/programme"
+                            className="text-white no-underline hover:underline focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white"
+                            aria-current={location.pathname === '/programme' ? 'page' : undefined}
                         >
                             Programme
                         </Link>
                     </li>
                     <li>
                         <a
-                            className="text-white no-underline hover:underline"
                             href="https://www.ticketmaster.fr/fr"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-white no-underline hover:underline focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white"
+                            aria-label="Billetterie (ouvre dans un nouvel onglet)"
                         >
                             Billetterie
                         </a>
