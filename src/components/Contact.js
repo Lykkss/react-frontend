@@ -1,14 +1,40 @@
 import React, { useState } from 'react';
 
 function Contact() {
-  const [email, setEmail] = useState('');
-  const [subject, setSubject] = useState('');
-  const [message, setMessage] = useState('');
+  const [form, setForm] = useState({ email: '', subject: '', message: '' });
+  const [status, setStatus] = useState(null);
 
-  const handleSubmit = (e) => {
+  const handleChange = (e) =>
+    setForm({ ...form, [e.target.name]: e.target.value });
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const mailtoLink = `mailto:lisa.quaglieri@ecole-epsi.net?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(`From: ${email}\n\n${message}`)}`;
-    window.location.href = mailtoLink;
+    setStatus('loading');
+
+    const payload = {
+      email: form.email,
+      subject: form.subject,
+      message: form.message,
+      _replyto: form.email,
+      _subject: `Contact form: ${form.subject}`,
+    };
+
+    try {
+      const res = await fetch('https://formspree.io/f/xwpodozb', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setStatus('success');
+        setForm({ email: '', subject: '', message: '' });
+      } else {
+        setStatus('error');
+      }
+    } catch (err) {
+      setStatus('error');
+    }
   };
 
   return (
@@ -20,17 +46,16 @@ function Contact() {
         >
           Contactez-nous
         </h2>
-        <p className="mb-8 lg:mb-16 font-light text-center text-gray-800 sm:text-xl">
-          Contactez-nous pour toute question ou demande d'information. Nous
-          serons ravis de vous aider.
+        <p className="mb-8 lg:mb-16 font-light text-center text-gray-500 sm:text-xl">
+          Une question ? Un retour à nous faire ? Dites-nous tout.
         </p>
 
         <form
           onSubmit={handleSubmit}
           aria-labelledby="contact-title"
           className="space-y-8"
-           action = "https://formspree.io/f/xwpodozb" method ="POST"
         >
+          {/* Email */}
           <div>
             <label
               htmlFor="email"
@@ -41,15 +66,16 @@ function Contact() {
             <input
               type="email"
               id="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              aria-required="true"
-              className="shadow-sm bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 block w-full p-2.5"
-              placeholder="exemple@contact.com"
+              name="email"
+              value={form.email}
+              onChange={handleChange}
               required
+              placeholder="exemple@contact.com"
+              className="bg-white border border-indigo-950 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 block w-full p-2.5 rounded-lg text-sm text-gray-900 transition"
             />
           </div>
 
+          {/* Sujet */}
           <div>
             <label
               htmlFor="subject"
@@ -60,15 +86,16 @@ function Contact() {
             <input
               type="text"
               id="subject"
-              value={subject}
-              onChange={(e) => setSubject(e.target.value)}
-              aria-required="true"
-              className="block p-3 w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
-              placeholder="Let us know how we can help you"
+              name="subject"
+              value={form.subject}
+              onChange={handleChange}
               required
+              placeholder="Let us know how we can help you"
+              className="bg-white border border-indigo-950  focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 block w-full p-3 rounded-lg text-sm text-gray-900 transition"
             />
           </div>
 
+          {/* Message */}
           <div>
             <label
               htmlFor="message"
@@ -78,23 +105,34 @@ function Contact() {
             </label>
             <textarea
               id="message"
+              name="message"
               rows="6"
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              aria-required="true"
-              className="block p-2.5 w-full text-sm text-gray-900 bg-gray-50 rounded-lg shadow-sm border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
-              placeholder="Leave a comment..."
+              value={form.message}
+              onChange={handleChange}
               required
+              placeholder="Leave a comment..."
+              className="bg-white border border-indigo-950 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 block w-full p-2.5 rounded-lg text-sm text-gray-900 transition"
             ></textarea>
           </div>
 
           <button
             type="submit"
-            aria-label="Envoyer le formulaire de contact"
-            className="mt-8 inline-block rounded bg-gray-900 px-12 py-3 text-sm font-medium text-white transition hover:bg-indigo-800 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:ring-offset-2"
+            disabled={status === 'loading'}
+            className="inline-block rounded bg-indigo-950 hover:bg-blue-700 text-white font-medium px-8 py-3 transition focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
           >
-            Envoyer
+            {status === 'loading' ? 'Envoi…' : 'Envoyer'}
           </button>
+
+          {status === 'success' && (
+            <p className="mt-4 text-green-600">
+              Message envoyé ! Merci.
+            </p>
+          )}
+          {status === 'error' && (
+            <p className="mt-4 text-red-600">
+              Erreur d’envoi, veuillez réessayer.
+            </p>
+          )}
         </form>
       </div>
     </section>
