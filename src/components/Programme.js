@@ -6,23 +6,26 @@ function Programme() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL;
   useEffect(() => {
     const fetchEvents = async () => {
       try {
-        const response = await fetch(API_URL, { method: 'GET' });
-        const contentType = response.headers.get("content-type");
-        if (!contentType?.includes("application/json")) {
+        // Appel via ton proxy Next.js
+        const response = await fetch("/api/proxy/concerts", { method: "GET" });
+        const contentType = response.headers.get("content-type") || "";
+
+        if (!contentType.includes("application/json")) {
           throw new Error("La réponse de l'API n'est pas du JSON.");
         }
         if (!response.ok) {
           throw new Error(`HTTP error! Status: ${response.status}`);
         }
+
+        // DRF renvoie typiquement un array pour GET /concerts/
         const data = await response.json();
-        if (Array.isArray(data.events)) {
-          setEvents(data.events);
+        if (Array.isArray(data)) {
+          setEvents(data);
         } else {
-          throw new Error("Aucun événement trouvé ou format incorrect.");
+          throw new Error("Format inattendu des données reçues.");
         }
       } catch (err) {
         setError(err.message);
@@ -30,8 +33,9 @@ function Programme() {
         setLoading(false);
       }
     };
+
     fetchEvents();
-  }, [API_URL]);
+  }, []);
 
   return (
     <>
@@ -98,28 +102,26 @@ function Programme() {
                   >
                     {event.title || "Titre non disponible"}
                   </h3>
-                  {startDate && (
+                  {startDate ? (
                     <p className="text-gray-600">
-                      Date de début :{' '}
+                      Date de début :{" "}
                       <time dateTime={startDate.toISOString()}>
-                        {startDate.toLocaleString('fr-FR')}
+                        {startDate.toLocaleString("fr-FR")}
                       </time>
                     </p>
-                  )}
-                  {!startDate && (
+                  ) : (
                     <p className="text-gray-600">
                       Date de début : Non spécifiée
                     </p>
                   )}
-                  {endDate && (
+                  {endDate ? (
                     <p className="text-gray-600">
-                      Date de fin :{' '}
+                      Date de fin :{" "}
                       <time dateTime={endDate.toISOString()}>
-                        {endDate.toLocaleString('fr-FR')}
+                        {endDate.toLocaleString("fr-FR")}
                       </time>
                     </p>
-                  )}
-                  {!endDate && (
+                  ) : (
                     <p className="text-gray-600">
                       Date de fin : Non spécifiée
                     </p>

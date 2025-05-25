@@ -12,8 +12,8 @@ const GroupeDetails = () => {
   useEffect(() => {
     async function fetchGroup() {
       try {
-        // on tape dans notre serverless Function Next.js
-        const response = await fetch(`/api/proxy/events/${id}`);
+        // on tape désormais dans /api/proxy/concerts/:id
+        const response = await fetch(`/api/proxy/concerts/${id}`);
         if (!response.ok) {
           throw new Error("Impossible de charger les détails de l’événement.");
         }
@@ -125,8 +125,7 @@ const GroupeDetails = () => {
                   />
                   <strong className="mr-1">Organisateur :</strong>
                   <span>
-                    {group.organizer?.[0]?.organizer ||
-                      "Non spécifié"}
+                    {group.organizer?.[0]?.organizer || "Non spécifié"}
                   </span>
                 </li>
               </ul>
@@ -142,9 +141,7 @@ const GroupeDetails = () => {
                 <time
                   dateTime={new Date(group.start_date).toISOString()}
                 >
-                  {new Date(group.start_date).toLocaleString(
-                    "fr-FR"
-                  )}
+                  {new Date(group.start_date).toLocaleString("fr-FR")}
                 </time>
               </div>
               <div className="text-gray-500">
@@ -152,9 +149,7 @@ const GroupeDetails = () => {
                 <time
                   dateTime={new Date(group.end_date).toISOString()}
                 >
-                  {new Date(group.end_date).toLocaleString(
-                    "fr-FR"
-                  )}
+                  {new Date(group.end_date).toLocaleString("fr-FR")}
                 </time>
               </div>
             </section>

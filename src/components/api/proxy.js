@@ -1,16 +1,47 @@
 // pages/api/proxy/[...path].js
 export default async function handler(req, res) {
-  // Base de ton API Django
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+  // Vos variables d’env “spécifiques” – notez bien qu'elles contiennent
+  // déjà l’URL complète avec `/api/.../`
+  const {
+    NEXT_PUBLIC_CATEGORIES_ENDPOINT,
+    NEXT_PUBLIC_CONCERTS_ENDPOINT,
+    NEXT_PUBLIC_LIEUX_ENDPOINT,
+    NEXT_PUBLIC_ORGANISATEURS_ENDPOINT,
+    NEXT_PUBLIC_API_URL
+  } = process.env;
 
-  // reconstruction du chemin : ['concerts','42'] → 'concerts/42'
-  const { path = [] } = req.query;
-  const pathSuffix = Array.isArray(path) ? path.join("/") : path;
-  const apiUrl = `${API_BASE_URL}/${pathSuffix}`;
+  // On reconstruit le “path” capturé par Next.js
+  const { path = [] } = req.query;               // ex: ['concerts','42']
+  const resource = path[0];                      // ex: 'concerts'
+  const id = path[1];                            // ex: '42'
+
+  // Mapping de “resource” → URL d’endpoint
+  const ENDPOINTS = {
+    categories: NEXT_PUBLIC_CATEGORIES_ENDPOINT,
+    concerts:   NEXT_PUBLIC_CONCERTS_ENDPOINT,
+    lieux:      NEXT_PUBLIC_LIEUX_ENDPOINT,
+    organisateurs: NEXT_PUBLIC_ORGANISATEURS_ENDPOINT,
+    // ... ajoutez d’autres si nécessaire
+  };
+
+  // Choix de l’URL de base en priorité sur un endpoint spécifique,
+  // sinon fallback vers NEXT_PUBLIC_API_URL + resource
+  let apiUrl;
+  if (ENDPOINTS[resource]) {
+    apiUrl = ENDPOINTS[resource];
+    // S’il y a un id, on l’appende (en retirant le slash final s’il existe)
+    if (id) {
+      apiUrl = apiUrl.replace(/\/$/, "") + `/${id}/`;
+    }
+  } else {
+    // fallback générique : http://…/api/{resource}/{id?}
+    const suffix = path.join("/");
+    apiUrl = `${NEXT_PUBLIC_API_URL.replace(/\/$/, "")}/${suffix}`;
+  }
 
   console.log("📡 Proxy:", req.method, req.url, "→", apiUrl);
 
-  // CORS
+  // ---- CORS ----
   res.setHeader(
     "Access-Control-Allow-Origin",
     "https://react-frontend-mspr2.vercel.app"
@@ -28,6 +59,7 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
+  // ---- Proxy the request ----
   try {
     const response = await fetch(apiUrl, {
       method: req.method,
