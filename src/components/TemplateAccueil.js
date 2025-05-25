@@ -26,13 +26,13 @@ const TemplateAccueil = () => {
                                 Live Event Festival !
                             </strong>
                         </h1>
-                        <p className="mt-4 max-w-lg text-white drop-shadow sm:text-xl/relaxed">
+                        <p className="mt-4 max-w-lg text-white sm:text-xl/relaxed">
                             Bienvenue sur notre site web. Découvrez les événements à venir et réservez vos billets dès aujourd'hui.
                         </p>
                         <div className="mt-8 flex justify-center">
                             <a
                                 href="/Programme"
-                                className="block w-full sm:w-auto rounded bg-gray-900 px-12 py-3 text-sm font-medium text-white shadow hover:bg-indigo-800 focus:outline-none focus:ring"
+                                className="nline-block rounded mt-8 bg-indigo-950 hover:bg-blue-700 text-white font-medium px-8 py-3 transition"
                             >
                                 Get Started
                             </a>
@@ -60,7 +60,7 @@ const TemplateAccueil = () => {
                             <div className="mt-8">
                                 <a
                                     href="https://www.ticketmaster.fr/fr"
-                                    className="inline-block rounded bg-gray-900 px-12 py-3 text-sm font-medium text-white transition hover:bg-indigo-800 focus:outline-none focus:ring focus:ring-yellow-400"
+                                    className="inline-block rounded mt-8 bg-indigo-950 hover:bg-blue-700 text-white font-medium px-8 py-3 transition"
                                 >
                                     Get Started Today
                                 </a>
