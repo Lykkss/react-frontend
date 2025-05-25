@@ -127,14 +127,6 @@ const GroupeDetails = () => {
           </article>
         )}
       </main>
-
-      <footer role="contentinfo" className="text-center py-6">
-        <div className="text-sm text-gray-500">
-          ©{' '}
-          <time dateTime={new Date().getFullYear().toString()}>{new Date().getFullYear()}</time>{' '}
-          Live Event™. Tous droits réservés.
-        </div>
-      </footer>
     </>
   );
 };
