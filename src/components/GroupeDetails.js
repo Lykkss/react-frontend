@@ -76,7 +76,7 @@ const GroupeDetails = () => {
             <section aria-labelledby="desc-title" className="mb-6">
               <h2 id="desc-title" className="sr-only">Description de l’événement</h2>
               <div className="text-gray-700">
-                <strong>Description :</strong>{' '}
+                <strong>Description :</strong>
                 <span>
                   {group.description?.trim() || 'Aucune description fournie.'}
                 </span>
