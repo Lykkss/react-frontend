@@ -69,7 +69,7 @@ const GroupeDetails = () => {
 
         {/* Contenu de l'événement */}
         {group && (
-          <article className="max-w-lg mx-auto p-6 bg-white rounded-lg shadow-2xl mb-20 z-10">
+          <article className="max-w-lg mx-auto p-6 bg-white border-indigo-950 border-2 rounded-lg shadow-2xl mb-20 z-10">
             <h1 className="text-3xl font-bold mb-4">{group.title}</h1>
 
             {/* Description */}
@@ -126,16 +126,6 @@ const GroupeDetails = () => {
           </article>
         )}
       </main>
-
-      <footer role="contentinfo" className="text-center py-6">
-        <div className="text-sm text-gray-500">
-          ©{' '}
-          <time dateTime={new Date().getFullYear().toString()}>
-            {new Date().getFullYear()}
-          </time>{' '}
-          Live Event™. Tous droits réservés.
-        </div>
-      </footer>
     </>
   );
 };
