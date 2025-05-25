@@ -44,7 +44,7 @@ const GroupeDetails = () => {
       {/* Lien de retour sous la bannière */}
       <div className="p-4">
         <Link
-          to="/events"
+          to="/programme"
           className="inline-block text-blue-600 hover:underline focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-400"
         >
           ← Retour à la liste des événements
