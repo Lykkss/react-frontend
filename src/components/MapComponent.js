@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Map, APIProvider, Marker, InfoWindow } from "@vis.gl/react-google-maps";
 import axios from "axios";
 
-const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY 
+const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API
 const API_URL = process.env.NEXT_PUBLIC_API_URL
 const parisCoordinates = { lat: 48.89243438749084, lng: 2.3940741223491946 };
 
