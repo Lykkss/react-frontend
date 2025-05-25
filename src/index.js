@@ -47,6 +47,7 @@ if (footerElement) {
             legalPage={legalPage}
             privacyPage={privacyPage}
             contactPage={contactPage}
+
         />
     );
 }
