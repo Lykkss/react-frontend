@@ -6,7 +6,7 @@ function Programme() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const API_URL = process.env.NEXT_PUBLIC_WP_API_URL || "/api/proxy/events";
+  const API_URL = process.env.REACT_APP_API_URL
 
   useEffect(() => {
     const fetchEvents = async () => {

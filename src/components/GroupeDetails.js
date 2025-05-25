@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { FaMoneyBillWave, FaMapMarkerAlt, FaUser } from 'react-icons/fa';
 import Image from '../assets/melissa-askew-AUXanrckXn0-unsplash.jpg';
 
-const API_URL = process.env.NEXT_PUBLIC_WP_API_URL || "/api/proxy";
+const API_URL = process.env.NEXT_PUBLIC_API_URL
 
 const GroupeDetails = () => {
   const { id } = useParams();
