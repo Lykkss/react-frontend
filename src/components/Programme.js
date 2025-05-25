@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
+
 function Programme() {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -10,7 +11,8 @@ function Programme() {
     const fetchEvents = async () => {
       try {
         // Appel via ton proxy Next.js
-        const response = await fetch("/api/proxy/concerts", { method: "GET" });
+        const response = await fetch('/api/proxy/concerts/'
+        , { method: "GET" });
         const contentType = response.headers.get("content-type") || "";
 
         if (!contentType.includes("application/json")) {
