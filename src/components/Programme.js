@@ -91,7 +91,7 @@ function Programme() {
                   key={event.id}
                   role="region"
                   aria-labelledby={`event-title-${event.id}`}
-                  className="bg-white shadow-md rounded-lg p-4 border-indigo-950 border-2 hover:border-indigo-500 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                  className="bg-white shadow-md text-center rounded-lg p-4 border-indigo-950 border-2 hover:border-indigo-500 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                 >
                   <h3
                     id={`event-title-${event.id}`}
