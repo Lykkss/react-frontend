@@ -29,22 +29,20 @@ function FestivalTemplate() {
         </div>
       </section>
       
-      {/* Carte des lieux */}
-      <section className="py-16 bg-blue-50">
-        <div className="max-w-screen-xl mx-auto px-4">
-          <h2 className="text-3xl font-bold text-blue-800 mb-6 text-center">
-            Carte des lieux
-          </h2>
-          <div className="rounded-lg overflow-hidden shadow-lg">
-            <MapComponent />
-          </div>
-        </div>
-      </section>
+      {/* Map Section */}   
+        <section className="py-12 bg-white-100">
+                <div className="mx-auto max-w-screen-xl px-4 sm:px-6 lg:px-8 text-center">
+                    <h2 className="text-3xl font-bold sm:text-4xl">Carte des Lieux</h2>
+                    <div className="mx-auto max-w-screen-xl px-4 sm:px-6 lg:px-8">
+                        <MapComponent />
+                    </div>
+                </div>
+            </section>
 
       {/* Informations Pratiques */}
-      <section className="py-16 bg-white">
+      <section className="py-16 bg-blue-50">
         <div className="max-w-screen-xl mx-auto px-4">
-          <h2 className="text-3xl font-bold text-blue-800 mb-12 text-center">
+          <h2 className="text-3xl font-bold mb-12 text-center">
             Informations Pratiques
           </h2>
 
@@ -82,12 +80,12 @@ function FestivalTemplate() {
             ].map((section, i) => (
               <div
                 key={i}
-                className="p-6 bg-white border-l-4 border-blue-600 rounded-lg shadow-sm hover:shadow-md transition"
+                className="p-6 bg-blue-50 border-2 border-indigo-950 rounded-lg shadow-sm hover:shadow-md transition"
               >
-                <h3 className="text-xl font-semibold mb-4 text-blue-700">
+                <h3 className="text-xl font-semibold mb-4 text-indigo-950 text-center">
                   {section.title}
                 </h3>
-                <ul className="space-y-2 text-gray-800">
+                <ul className="space-y-2 text-indigo-950">
                   {section.items.map((item, j) => (
                     <li key={j} className="flex items-start">
                       {item.icon && (
@@ -95,7 +93,7 @@ function FestivalTemplate() {
                       )}
                       <div>
                         {item.label && (
-                          <strong className="block text-blue-600">
+                          <strong className="block text-indigo-950">
                             {item.label}:
                           </strong>
                         )}
@@ -106,15 +104,6 @@ function FestivalTemplate() {
                 </ul>
               </div>
             ))}
-          </div>
-
-          <div className="mt-12 text-center">
-            <a
-              href="https://www.ticketmaster.fr/fr"
-              className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold px-8 py-3 rounded-full transition"
-            >
-              Acheter mes billets
-            </a>
           </div>
         </div>
       </section>
