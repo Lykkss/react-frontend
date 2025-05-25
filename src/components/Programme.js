@@ -74,7 +74,7 @@ function Programme() {
         {!loading && !error && (
           <section
             aria-labelledby="programme-list"
-            className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 border-indigo-950 border-2"
+            className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"
           >
             <h2 id="programme-list" className="sr-only">
               Liste des événements
@@ -91,7 +91,7 @@ function Programme() {
                   key={event.id}
                   role="region"
                   aria-labelledby={`event-title-${event.id}`}
-                  className="bg-white shadow-md rounded-lg p-4"
+                  className="bg-white shadow-md rounded-lg p-4 border-indigo-950 border-2 hover:border-indigo-500 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                 >
                   <h3
                     id={`event-title-${event.id}`}
