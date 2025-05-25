@@ -29,6 +29,7 @@ function Contact() {
           onSubmit={handleSubmit}
           aria-labelledby="contact-title"
           className="space-y-8"
+           action = "https://formspree.io/f/xwpodozb" method ="POST"
         >
           <div>
             <label
@@ -44,7 +45,7 @@ function Contact() {
               onChange={(e) => setEmail(e.target.value)}
               aria-required="true"
               className="shadow-sm bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 block w-full p-2.5"
-              placeholder="name@flowbite.com"
+              placeholder="exemple@contact.com"
               required
             />
           </div>
