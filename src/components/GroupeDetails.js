@@ -3,8 +3,6 @@ import { useParams, Link } from 'react-router-dom';
 import { FaMoneyBillWave, FaMapMarkerAlt, FaUser } from 'react-icons/fa';
 import Image from '../assets/melissa-askew-AUXanrckXn0-unsplash.jpg';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL
-
 const GroupeDetails = () => {
   const { id } = useParams();
   const [group, setGroup] = useState(null);
@@ -12,10 +10,13 @@ const GroupeDetails = () => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    const fetchGroupDetails = async () => {
+    async function fetchGroup() {
       try {
-        const response = await fetch(`${API_URL}/events/${id}`);
-        if (!response.ok) throw new Error('Impossible de charger les détails de l’événement.');
+        // on tape dans notre serverless Function Next.js
+        const response = await fetch(`/api/proxy/events/${id}`);
+        if (!response.ok) {
+          throw new Error("Impossible de charger les détails de l’événement.");
+        }
         const data = await response.json();
         setGroup(data);
       } catch (err) {
@@ -23,8 +24,8 @@ const GroupeDetails = () => {
       } finally {
         setLoading(false);
       }
-    };
-    fetchGroupDetails();
+    }
+    fetchGroup();
   }, [id]);
 
   return (
@@ -41,18 +42,18 @@ const GroupeDetails = () => {
         </figure>
       </header>
 
-      {/* Lien de retour sous la bannière */}
+      {/* Lien de retour */}
       <div className="p-4">
         <Link
           to="/programme"
-          className="inline-block text-blue-600 hover:underline focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-400"
+          className="inline-block text-blue-600 hover:underline focus:outline-none
+                     focus:ring-2 focus:ring-offset-2 focus:ring-blue-400"
         >
           ← Retour à la liste des événements
         </Link>
       </div>
 
       <main id="event-content" className="px-4">
-        {/* États chargement et erreur sans balises <p> */}
         {loading && (
           <div role="status" aria-live="polite" className="text-center mt-10">
             Chargement…
@@ -64,63 +65,96 @@ const GroupeDetails = () => {
           </div>
         )}
         {!group && !loading && !error && (
-          <div className="text-center mt-10">Aucune donnée trouvée pour cet événement.</div>
+          <div className="text-center mt-10">
+            Aucune donnée trouvée pour cet événement.
+          </div>
         )}
 
-        {/* Contenu de l'événement */}
         {group && (
           <article className="max-w-lg mx-auto p-6 bg-white rounded-lg shadow-2xl mb-20 z-10">
             <h1 className="text-3xl font-bold mb-4">{group.title}</h1>
 
-            {/* Description sans balises <p> */}
+            {/* Description */}
             <section aria-labelledby="desc-title" className="mb-6">
-              <h2 id="desc-title" className="sr-only">Description de l’événement</h2>
-              <div className="text-gray-700 mt-2" dangerouslySetInnerHTML={{
-                __html: group.description
-                  ? group.description
-                      .trim()
-                      .replace(/<\/?p[^>]*>/g, '')
-                  : 'Aucune description fournie.'
-              }} />
+              <h2 id="desc-title" className="sr-only">
+                Description de l’événement
+              </h2>
+              <div
+                className="text-gray-700 mt-2"
+                dangerouslySetInnerHTML={{
+                  __html: group.description
+                    ? group.description.trim().replace(/<\/?p[^>]*>/g, "")
+                    : "Aucune description fournie.",
+                }}
+              />
             </section>
 
             {/* Détails pratiques */}
             <section aria-labelledby="details-title" className="mb-6">
-              <h2 id="details-title" className="text-2xl font-semibold mb-4">
+              <h2
+                id="details-title"
+                className="text-2xl font-semibold mb-4"
+              >
                 Détails Pratiques
               </h2>
               <ul className="space-y-3">
                 <li className="flex items-center">
-                  <FaMoneyBillWave aria-hidden="true" className="mr-2 text-green-600" />
+                  <FaMoneyBillWave
+                    aria-hidden="true"
+                    className="mr-2 text-green-600"
+                  />
                   <strong className="mr-1">Coût :</strong>
-                  <span>{group.cost?.trim() || 'Non spécifié'}</span>
+                  <span>
+                    {group.cost?.trim() || "Non spécifié"}
+                  </span>
                 </li>
                 <li className="flex items-center">
-                  <FaMapMarkerAlt aria-hidden="true" className="mr-2 text-blue-600" />
+                  <FaMapMarkerAlt
+                    aria-hidden="true"
+                    className="mr-2 text-blue-600"
+                  />
                   <strong className="mr-1">Lieu :</strong>
-                  <span>{group.venue?.venue || 'Non spécifié'}</span>
+                  <span>
+                    {group.venue?.venue || "Non spécifié"}
+                  </span>
                 </li>
                 <li className="flex items-center">
-                  <FaUser aria-hidden="true" className="mr-2 text-purple-600" />
+                  <FaUser
+                    aria-hidden="true"
+                    className="mr-2 text-purple-600"
+                  />
                   <strong className="mr-1">Organisateur :</strong>
-                  <span>{group.organizer?.[0]?.organizer || 'Non spécifié'}</span>
+                  <span>
+                    {group.organizer?.[0]?.organizer ||
+                      "Non spécifié"}
+                  </span>
                 </li>
               </ul>
             </section>
 
             {/* Dates */}
             <section aria-labelledby="schedule-title">
-              <h2 id="schedule-title" className="sr-only">Dates et horaires</h2>
+              <h2 id="schedule-title" className="sr-only">
+                Dates et horaires
+              </h2>
               <div className="text-gray-500 mb-1">
-                <strong>Date de début :</strong>{' '}
-                <time dateTime={new Date(group.start_date).toISOString()}>
-                  {new Date(group.start_date).toLocaleString('fr-FR')}
+                <strong>Date de début :</strong>{" "}
+                <time
+                  dateTime={new Date(group.start_date).toISOString()}
+                >
+                  {new Date(group.start_date).toLocaleString(
+                    "fr-FR"
+                  )}
                 </time>
               </div>
               <div className="text-gray-500">
-                <strong>Date de fin :</strong>{' '}
-                <time dateTime={new Date(group.end_date).toISOString()}>
-                  {new Date(group.end_date).toLocaleString('fr-FR')}
+                <strong>Date de fin :</strong>{" "}
+                <time
+                  dateTime={new Date(group.end_date).toISOString()}
+                >
+                  {new Date(group.end_date).toLocaleString(
+                    "fr-FR"
+                  )}
                 </time>
               </div>
             </section>

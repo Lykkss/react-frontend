@@ -2,8 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Map, APIProvider, Marker, InfoWindow } from "@vis.gl/react-google-maps";
 import axios from "axios";
 
-const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API
-const API_URL = process.env.NEXT_PUBLIC_API_URL
+const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API;  // ta clé
 const parisCoordinates = { lat: 48.89243438749084, lng: 2.3940741223491946 };
 
 const artistIcons = {
@@ -14,46 +13,28 @@ const artistIcons = {
   69: "https://img.icons8.com/color/48/music.png",
 };
 
-
 const iconwcandfood = {
   toilets: "https://img.icons8.com/ios-filled/50/wc.png",
   buvette: "https://img.icons8.com/color/48/beer.png",
 };
 
 /**
- * Parse une chaîne de type "<p>latitude | longitude</p>"
- * @param {string} rawString - La chaîne brute à parser
- * @returns {{ latitude: number, longitude: number }}
- * @throws {Error} Si le format est invalide ou les coordonnées ne sont pas convertibles
+ * Parse "<p>lat | lon</p>" en { latitude, longitude }
  */
 export function parseLocationString(rawString) {
-  try {
-    if (!rawString) throw new Error("Chaîne vide");
-
-    // Supprimer les balises HTML
-    const cleaned = rawString
-      .replace(/<\/?[^>]+(>|$)/g, "")
-      .trim();
-
-    const parts = cleaned.split('|').map(part => part.trim());
-
-    if (parts.length !== 2) {
-      throw new Error(`Format invalide. Attendu: "latitude | longitude". Reçu: "${cleaned}"`);
-    }
-
-    const [latStr, lonStr] = parts;
-    const latitude = parseFloat(latStr);
-    const longitude = parseFloat(lonStr);
-
-    if (isNaN(latitude) || isNaN(longitude)) {
-      throw new Error(`Latitude ou longitude non valides. latitude: "${latStr}", longitude: "${lonStr}"`);
-    }
-
-    return { latitude, longitude };
-  } catch (error) {
-    console.error('Erreur lors du parsing de la chaîne :', error.message);
-    throw error;
+  if (!rawString) throw new Error("Chaîne vide");
+  const cleaned = rawString.replace(/<\/?[^>]+(>|$)/g, "").trim();
+  const parts = cleaned.split("|").map((p) => p.trim());
+  if (parts.length !== 2) {
+    throw new Error(`Format invalide: "${cleaned}"`);
   }
+  const [latStr, lonStr] = parts;
+  const latitude = parseFloat(latStr);
+  const longitude = parseFloat(lonStr);
+  if (isNaN(latitude) || isNaN(longitude)) {
+    throw new Error(`Coordonnées invalides: ${latStr}, ${lonStr}`);
+  }
+  return { latitude, longitude };
 }
 
 const MapWithFilters = () => {
@@ -67,126 +48,132 @@ const MapWithFilters = () => {
   const [dateFilter, setDateFilter] = useState("");
   const [categories, setCategories] = useState([]);
 
+  // Géolocalisation
   useEffect(() => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setUserLocation({
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
-          });
-        },
-        (error) => console.error("Erreur de géolocalisation :", error)
+        ({ coords }) =>
+          setUserLocation({ lat: coords.latitude, lng: coords.longitude }),
+        (err) => console.error("Géo failed:", err)
       );
     }
   }, []);
 
+  // Récup des events via le proxy
   useEffect(() => {
-    const fetchEvents = async () => {
-      try {
-        const res = await axios.get(`${API_URL}/events`);
-        const data = res.data.events || [];
+    axios
+      .get("/api/proxy/events")
+      .then((res) => {
+        // si ton API WP renvoie { events: [...] }, sinon adapte
+        const data = res.data.events || res.data || [];
         setEvents(data);
 
         const cats = new Set();
-        data.forEach((e) => {
-          e.categories?.forEach((c) => cats.add(c.name));
-        });
-
-        setCategories(["all", ...Array.from(cats)]);
-      } catch (err) {
-        console.error("Erreur chargement événements:", err);
-      }
-    };
-    fetchEvents();
+        data.forEach((e) =>
+          e.categories?.forEach((c) => cats.add(c.name))
+        );
+        setCategories(["all", ...cats]);
+      })
+      .catch((err) =>
+        console.error("Erreur chargement événements:", err)
+      );
   }, []);
+
+  // Filtrage + parsing des coords
   useEffect(() => {
-    const filterAndParse = async () => {
-      const results = await Promise.all(events.map(async (event) => {
-        if (categoryFilter !== "all") {
-          const catNames = event.categories?.map((c) => c.name) || [];
-          if (!catNames.includes(categoryFilter)) return null;
-        }
-
-        if (dateFilter) {
-          const eventDate = new Date(event.start_date).toISOString().split("T")[0];
-          if (eventDate !== dateFilter) return null;
-        }
-
-        const rawLoc = event.venue?.description;
-        let coords = null;
-
-        if (rawLoc) {
-          try {
-            const parsed = parseLocationString(rawLoc);
-            coords = { lat: parsed.latitude, lng: parsed.longitude };
-          } catch (err) {
-            console.warn("📛 Parsing échoué pour l'événement :", event.title);
+    const doFilter = async () => {
+      const arr = await Promise.all(
+        events.map((event) => {
+          if (categoryFilter !== "all") {
+            const names = event.categories?.map((c) => c.name) || [];
+            if (!names.includes(categoryFilter)) return null;
           }
-          if (coords) {
+          if (dateFilter) {
+            const d = new Date(event.start_date)
+              .toISOString()
+              .split("T")[0];
+            if (d !== dateFilter) return null;
+          }
+          const raw = event.venue?.description;
+          if (!raw) return null;
+          try {
+            const { latitude, longitude } = parseLocationString(raw);
             return {
               id: event.id,
-              lat: coords.lat,
-              lng: coords.lng,
+              lat: latitude,
+              lng: longitude,
               name: event.venue?.venue || "Lieu inconnu",
               description: `🎤 ${event.title}`,
               url: event.url,
               icon: artistIcons[event.id],
             };
+          } catch {
+            console.warn("Parsing coords failed for", event.title);
+            return null;
           }
-        }
-          return null;
-        }));
-  
-        setFilteredConcerts(results.filter(Boolean));
-      };
-  
-      if (events.length) filterAndParse();
-    }, [events, categoryFilter, dateFilter]);
-  
-    return (
-      <div>
-        <div style={{ marginBottom: 10 }}>
-          <label>Catégorie : </label>
-          <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
-            {categories.map((cat) => (
-              <option key={cat} value={cat}>{cat}</option>
+        })
+      );
+      setFilteredConcerts(arr.filter(Boolean));
+    };
+    if (events.length) doFilter();
+  }, [events, categoryFilter, dateFilter]);
+
+  return (
+    <div>
+      {/* Filtres */}
+      <div className="flex items-center mb-4 space-x-4">
+        <label>
+          Catégorie:
+          <select
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value)}
+            className="ml-2 p-1 border rounded"
+          >
+            {categories.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
             ))}
           </select>
-  
-          <label style={{ marginLeft: 20 }}>Date : </label>
+        </label>
+        <label>
+          Date:
           <input
             type="date"
             value={dateFilter}
             onChange={(e) => setDateFilter(e.target.value)}
+            className="ml-2 p-1 border rounded"
           />
-        </div>
-        <div className="checkboxes" style={{ marginBottom: 10 }}>
-        <label>
-        <input
+        </label>
+        <label className="ml-4">
+          <input
             type="checkbox"
             checked={showToilettes}
             onChange={() => setShowToilettes(!showToilettes)}
-            />
-            Toilettes
-          </label>
-          <label style={{ marginLeft: "10px" }}>
-            <input
-              type="checkbox"
-              checked={showBuvettes}
-              onChange={() => setShowBuvettes(!showBuvettes)}
-            />
-            Buvettes
-          </label>
-        </div>
-  
-        <div className="map-container" style={{ height: "500px", width: "100%" }}>
-        <APIProvider apiKey={GOOGLE_MAPS_API_KEY}>
+            className="mr-1"
+          />
+          Toilettes
+        </label>
+        <label>
+          <input
+            type="checkbox"
+            checked={showBuvettes}
+            onChange={() => setShowBuvettes(!showBuvettes)}
+            className="mr-1"
+          />
+          Buvettes
+        </label>
+      </div>
+
+      {/* Carte */}
+      <div className="h-[500px] w-full">
+        <APIProvider apiKey={GOOGLE_MAPS_API}>
           <Map
-            style={{ height: "100%", width: "100%" }}
             defaultZoom={13}
             defaultCenter={userLocation || parisCoordinates}
+            style={{ height: "100%", width: "100%" }}
           >
+            {/* Sanitaires */}
             {showToilettes && (
               <>
                 <Marker
@@ -205,8 +192,11 @@ const MapWithFilters = () => {
                     })
                   }
                 />
-                  <Marker
-                  position={{ lat: 48.892265844185864, lng: 2.3908280829451645 }}
+                <Marker
+                  position={{
+                    lat: 48.892265844185864,
+                    lng: 2.3908280829451645,
+                  }}
                   title="Toilette A"
                   icon={{
                     url: iconwcandfood.toilets,
@@ -221,9 +211,11 @@ const MapWithFilters = () => {
                     })
                   }
                 />
-                </>
+              </>
             )}
-              {showBuvettes && (
+
+            {/* Buvettes */}
+            {showBuvettes && (
               <>
                 <Marker
                   position={{ lat: 48.889119253507474, lng: 2.3951812985797716 }}
@@ -241,7 +233,7 @@ const MapWithFilters = () => {
                     })
                   }
                 />
-                  <Marker
+                <Marker
                   position={{ lat: 48.89359608003054, lng: 2.3944138241471657 }}
                   title="Buvette B"
                   icon={{
@@ -257,31 +249,50 @@ const MapWithFilters = () => {
                     })
                   }
                 />
-                  </>
+              </>
             )}
 
+            {/* Événements */}
             {filteredConcerts.map((loc) => (
-               <Marker
-               key={loc.id}
-               position={{ lat: loc.lat, lng: loc.lng }}
-               title={loc.name}
-               icon={
-                 loc.icon
-                   ? { url: loc.icon, scaledSize: new window.google.maps.Size(40, 40) }
-                   : undefined
-               }
-               onClick={() => setSelectedLocation(loc)}
-             />
-           ))}
+              <Marker
+                key={loc.id}
+                position={{ lat: loc.lat, lng: loc.lng }}
+                title={loc.name}
+                icon={
+                  loc.icon
+                    ? {
+                        url: loc.icon,
+                        scaledSize: new window.google.maps.Size(40, 40),
+                      }
+                    : undefined
+                }
+                onClick={() => setSelectedLocation(loc)}
+              />
+            ))}
+
+            {/* InfoWindow */}
             {selectedLocation && (
               <InfoWindow
-                position={{ lat: selectedLocation.lat, lng: selectedLocation.lng }}
+                position={{
+                  lat: selectedLocation.lat,
+                  lng: selectedLocation.lng,
+                }}
                 onCloseClick={() => setSelectedLocation(null)}
               >
                 <div>
-                  <h3>{selectedLocation.name}</h3>
+                  <h3 className="font-bold">{selectedLocation.name}</h3>
                   <p>{selectedLocation.description}</p>
-                    </div>
+                  {selectedLocation.url && (
+                    <a
+                      href={selectedLocation.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-blue-600 hover:underline"
+                    >
+                      Voir l’événement
+                    </a>
+                  )}
+                </div>
               </InfoWindow>
             )}
           </Map>
