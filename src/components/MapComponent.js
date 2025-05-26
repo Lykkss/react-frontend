@@ -2,7 +2,8 @@ import React, { useState, useEffect } from "react";
 import { Map, APIProvider, Marker, InfoWindow } from "@vis.gl/react-google-maps";
 import axios from "axios";
 
-const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API;  // ta clé
+const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API;
+const API_URL = process.env.REACT_APP_API_URL;
 const parisCoordinates = { lat: 48.89243438749084, lng: 2.3940741223491946 };
 
 const artistIcons = {
@@ -18,75 +19,62 @@ const iconwcandfood = {
   buvette: "https://img.icons8.com/color/48/beer.png",
 };
 
-/**
- * Parse "<p>lat | lon</p>" en { latitude, longitude }
- */
 export function parseLocationString(rawString) {
   if (!rawString) throw new Error("Chaîne vide");
   const cleaned = rawString.replace(/<\/?[^>]+(>|$)/g, "").trim();
   const parts = cleaned.split("|").map((p) => p.trim());
-  if (parts.length !== 2) {
-    throw new Error(`Format invalide: "${cleaned}"`);
-  }
-  const [latStr, lonStr] = parts;
-  const latitude = parseFloat(latStr);
-  const longitude = parseFloat(lonStr);
+  if (parts.length !== 2) throw new Error(`Format invalide : "${cleaned}"`);
+  const latitude = parseFloat(parts[0]);
+  const longitude = parseFloat(parts[1]);
   if (isNaN(latitude) || isNaN(longitude)) {
-    throw new Error(`Coordonnées invalides: ${latStr}, ${lonStr}`);
+    throw new Error(`Coordonnées non valides : ${parts[0]}, ${parts[1]}`);
   }
   return { latitude, longitude };
 }
 
 const MapWithFilters = () => {
-  const [showToilettes, setShowToilettes] = useState(false);
-  const [showBuvettes, setShowBuvettes] = useState(false);
+  const [venues, setVenues] = useState([]);
   const [events, setEvents] = useState([]);
   const [filteredConcerts, setFilteredConcerts] = useState([]);
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [userLocation, setUserLocation] = useState(null);
-  const [categoryFilter, setCategoryFilter] = useState("all");
-  const [dateFilter, setDateFilter] = useState("");
-  const [categories, setCategories] = useState([]);
 
+  const [venueFilter, setVenueFilter] = useState("all");
+  const [dateFilter, setDateFilter] = useState("");
+  const [showToilettes, setShowToilettes] = useState(false);
+  const [showBuvettes, setShowBuvettes] = useState(false);
+
+  // Géoloc utilisateur
   useEffect(() => {
-    navigator.geolocation?.getCurrentPosition(
-      ({ coords }) =>
-        setUserLocation({ lat: coords.latitude, lng: coords.longitude }),
-      (err) => console.error("Géo failed:", err)
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => setUserLocation({ lat: coords.latitude, lng: coords.longitude }),
+      () => {}
     );
   }, []);
 
-  // --- appel à Django via notre proxy Next.js ---
+  // Charge lieux puis concerts
   useEffect(() => {
-    axios
-      .get("/api/proxy/concerts")               // <-- note le "s"
-      .then((res) => {
-        // Django te renvoie direct un array
-        const data = Array.isArray(res.data) ? res.data : [];
-        setEvents(data);
-
-        // collecte des catégories
-        const cats = new Set();
-        data.forEach((e) => {
-          // selon ton serializer, ça peut être e.categories (M2M) ou e.category name,
-          // ici on suppose que tu as un champ categories = [{ name: "Techno" }, ...]
-          e.categories?.forEach((c) => cats.add(c.name));
-        });
-        setCategories(["all", ...cats]);
-      })
-      .catch((err) => console.error("Erreur chargement événements:", err));
+    const fetchAll = async () => {
+      try {
+        const [vRes, eRes] = await Promise.all([
+          axios.get(`${API_URL}/lieux/`),
+          axios.get(`${API_URL}/concerts/`),
+        ]);
+        setVenues(vRes.data);
+        setEvents(eRes.data);
+      } catch (err) {
+        console.error("Erreur chargement:", err);
+      }
+    };
+    fetchAll();
   }, []);
 
-  // filtrage + parsing
+  // Filtre & prépare filteredConcerts
   useEffect(() => {
-    if (!events.length) return;
-
-    const arr = events
+    const results = events
       .filter((e) => {
-        if (categoryFilter !== "all") {
-          const names = e.categories?.map((c) => c.name) || [];
-          if (!names.includes(categoryFilter)) return false;
-        }
+        if (venueFilter !== "all" && e.lieu.toString() !== venueFilter) return false;
         if (dateFilter) {
           const d = new Date(e.start_date).toISOString().split("T")[0];
           if (d !== dateFilter) return false;
@@ -94,79 +82,150 @@ const MapWithFilters = () => {
         return true;
       })
       .map((e) => {
+        const venueObj = venues.find((v) => v.id === e.lieu);
+        if (!venueObj) return null;
         try {
-          const { latitude, longitude } = parseLocationString(
-            e.venue?.description
-          );
+          const { latitude, longitude } = parseLocationString(venueObj.description);
           return {
             id: e.id,
             lat: latitude,
             lng: longitude,
-            name: e.venue?.venue || "Lieu inconnu",
+            name: e.title,
             description: `🎤 ${e.title}`,
+            venueName: venueObj.name,
             url: e.url,
-            icon: artistIcons[e.id],
+            iconUrl: artistIcons[e.id],
           };
         } catch {
-          console.warn("Parsing coords failed for", e.title);
           return null;
         }
       })
       .filter(Boolean);
 
-    setFilteredConcerts(arr);
-  }, [events, categoryFilter, dateFilter]);
+    setFilteredConcerts(results);
+  }, [events, venues, venueFilter, dateFilter]);
 
   return (
     <div>
-      {/* ... tes filtres inchangés ... */}
+      {/* Reset filtre */}
+      <button onClick={() => setVenueFilter("all")} className="mb-2 px-3 py-1 bg-indigo-600 text-white rounded">
+        Afficher tous les lieux
+      </button>
 
-      <div className="h-[500px] w-full">
-        <APIProvider apiKey={GOOGLE_MAPS_API_KEY}>
-          <Map
-            defaultZoom={13}
-            defaultCenter={userLocation || parisCoordinates}
-            style={{ height: "100%", width: "100%" }}
+      {/* Filtres */}
+      <div className="mb-4 flex items-center">
+        <label className="mr-4">
+          Lieu :
+          <select
+            value={venueFilter}
+            onChange={(e) => setVenueFilter(e.target.value)}
+            className="ml-2 p-1 border rounded"
           >
-            {/* Sanitaires, buvettes, markers… inchangés */}
+            <option value="all">Tous les lieux</option>
+            {venues.map((v) => (
+              <option key={v.id} value={v.id}>
+                {v.name}
+              </option>
+            ))}
+          </select>
+        </label>
 
+        <label>
+          Date :
+          <input
+            type="date"
+            value={dateFilter}
+            onChange={(e) => setDateFilter(e.target.value)}
+            className="ml-2 p-1 border rounded"
+          />
+        </label>
+      </div>
+
+      {/* Toilettes / Buvettes */}
+      <div className="mb-4">
+        <label className="mr-4">
+          <input
+            type="checkbox"
+            checked={showToilettes}
+            onChange={() => setShowToilettes((v) => !v)}
+            className="mr-1"
+          />
+          Toilettes
+        </label>
+        <label>
+          <input
+            type="checkbox"
+            checked={showBuvettes}
+            onChange={() => setShowBuvettes((v) => !v)}
+            className="mr-1"
+          />
+          Buvettes
+        </label>
+      </div>
+
+      {/* Carte */}
+      <div style={{ height: 500, width: "100%" }}>
+        <APIProvider apiKey={GOOGLE_MAPS_API_KEY}>
+          <Map defaultZoom={13} defaultCenter={userLocation || parisCoordinates} style={{ width: "100%", height: "100%" }}>
+            {/* Toilettes */}
+            {showToilettes &&
+              [
+                { lat: 48.85341, lng: 2.3488, name: "Toilette B" },
+                { lat: 48.89227, lng: 2.39083, name: "Toilette A" },
+              ].map((loc) => (
+                <Marker
+                  key={loc.name}
+                  position={{ lat: loc.lat, lng: loc.lng }}
+                  icon={{ url: iconwcandfood.toilets, scaledSize: new window.google.maps.Size(40, 40) }}
+                  onClick={() => setSelectedLocation({ ...loc, description: "Toilettes publiques 🚻" })}
+                />
+              ))}
+
+            {/* Buvettes */}
+            {showBuvettes &&
+              [
+                { lat: 48.88912, lng: 2.39518, name: "Buvette A" },
+                { lat: 48.8936, lng: 2.39441, name: "Buvette B" },
+              ].map((loc) => (
+                <Marker
+                  key={loc.name}
+                  position={{ lat: loc.lat, lng: loc.lng }}
+                  icon={{ url: iconwcandfood.buvette, scaledSize: new window.google.maps.Size(40, 40) }}
+                  onClick={() => setSelectedLocation({ ...loc, description: "Buvette disponible 🍻" })}
+                />
+              ))}
+
+            {/* Événements filtrés */}
             {filteredConcerts.map((loc) => (
               <Marker
                 key={loc.id}
                 position={{ lat: loc.lat, lng: loc.lng }}
                 title={loc.name}
                 icon={
-                  loc.icon
-                    ? {
-                        url: loc.icon,
-                        scaledSize: new window.google.maps.Size(40, 40),
-                      }
+                  loc.iconUrl
+                    ? { url: loc.iconUrl, scaledSize: new window.google.maps.Size(40, 40) }
                     : undefined
                 }
                 onClick={() => setSelectedLocation(loc)}
               />
             ))}
 
+            {/* InfoWindow */}
             {selectedLocation && (
               <InfoWindow
-                position={{
-                  lat: selectedLocation.lat,
-                  lng: selectedLocation.lng,
-                }}
+                position={{ lat: selectedLocation.lat, lng: selectedLocation.lng }}
                 onCloseClick={() => setSelectedLocation(null)}
               >
                 <div>
                   <h3 className="font-bold">{selectedLocation.name}</h3>
                   <p>{selectedLocation.description}</p>
+                  <p><strong>Lieu :</strong> {selectedLocation.venueName}</p>
                   {selectedLocation.url && (
-                    <a
-                      href={selectedLocation.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-blue-600 hover:underline"
-                    >
-                      Voir l’événement
-                    </a>
+                    <p>
+                      <a href={selectedLocation.url} target="_blank" rel="noopener noreferrer">
+                        En savoir plus
+                      </a>
+                    </p>
                   )}
                 </div>
               </InfoWindow>
@@ -176,6 +235,6 @@ const MapWithFilters = () => {
       </div>
     </div>
   );
-}
+};
 
 export default MapWithFilters;
