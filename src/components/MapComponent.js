@@ -38,13 +38,11 @@ const MapWithFilters = () => {
   const [filteredConcerts, setFilteredConcerts]   = useState([]);
   const [selectedLocation, setSelectedLocation]   = useState(null);
   const [userLocation, setUserLocation]           = useState(null);
-
-  const [venueFilter, setVenueFilter]             = useState("");
+  const [venueFilter, setVenueFilter]             = useState("all");
   const [dateFilter, setDateFilter]               = useState("");
   const [showToilettes, setShowToilettes]         = useState(false);
   const [showBuvettes, setShowBuvettes]           = useState(false);
 
-  // Géolocalisation
   useEffect(() => {
     navigator.geolocation?.getCurrentPosition(
       ({ coords }) => setUserLocation({ lat: coords.latitude, lng: coords.longitude }),
@@ -52,13 +50,12 @@ const MapWithFilters = () => {
     );
   }, []);
 
-  // Chargement des lieux et concerts
   useEffect(() => {
     const fetchData = async () => {
       try {
         const [vRes, eRes] = await Promise.all([
           axios.get(`${API_URL}/lieux/`),
-          axios.get(`${API_URL}/concerts/`)
+          axios.get(`${API_URL}/concerts/`),
         ]);
         setVenues(vRes.data);
         setEvents(eRes.data);
@@ -69,15 +66,10 @@ const MapWithFilters = () => {
     fetchData();
   }, []);
 
-  // Refiltrage à chaque filtre change
   useEffect(() => {
     const result = events
       .filter((e) => {
-        // si filtre lieu actif
-        if (venueFilter !== "all" && e.lieu.toString() !== venueFilter) {
-          return false;
-        }
-        // si filtre date actif
+        if (venueFilter !== "all" && e.lieu.toString() !== venueFilter) return false;
         if (dateFilter) {
           const d = new Date(e.start_date).toISOString().split("T")[0];
           if (d !== dateFilter) return false;
@@ -97,7 +89,7 @@ const MapWithFilters = () => {
             description: `🎤 ${e.title}`,
             venueName: venueObj.name,
             url: e.url,
-            iconUrl: artistIcons[e.id]
+            iconUrl: artistIcons[e.id],  // <-- URL de l'icône
           };
         } catch {
           return null;
@@ -110,7 +102,6 @@ const MapWithFilters = () => {
 
   return (
     <div>
-      {/* Bouton : affiche tout + vide la date */}
       <button
         onClick={() => {
           setVenueFilter("all");
@@ -121,7 +112,6 @@ const MapWithFilters = () => {
         Afficher tous les lieux
       </button>
 
-      {/* Filtres */}
       <div className="mb-4 flex items-center">
         <label className="mr-4">
           Lieu :
@@ -149,7 +139,6 @@ const MapWithFilters = () => {
         </label>
       </div>
 
-      {/* Toilettes / buvettes */}
       <div className="mb-4 flex">
         <label className="mr-4">
           <input
@@ -171,7 +160,6 @@ const MapWithFilters = () => {
         </label>
       </div>
 
-      {/* Carte */}
       <div style={{ height: 500, width: "100%" }}>
         <APIProvider apiKey={GOOGLE_MAPS_API_KEY}>
           <Map
@@ -179,33 +167,38 @@ const MapWithFilters = () => {
             defaultCenter={userLocation || parisCoordinates}
             style={{ width: "100%", height: "100%" }}
           >
-            {/* Toilettes */}
-            {showToilettes && [
-              { lat: 48.85341, lng: 2.3488, name: "Toilette B" },
-              { lat: 48.89227, lng: 2.39083, name: "Toilette A" },
-            ].map((loc) => (
-              <Marker
-                key={loc.name}
-                position={{ lat: loc.lat, lng: loc.lng }}
-                icon={{ url: iconwcandfood.toilets, scaledSize: new window.google.maps.Size(40, 40) }}
-                onClick={() => setSelectedLocation({ ...loc, description: "Toilettes publiques 🚻" })}
-              />
-            ))}
+            {showToilettes &&
+              [
+                { lat: 48.85341, lng: 2.3488, name: "Toilette B" },
+                { lat: 48.89227, lng: 2.39083, name: "Toilette A" },
+              ].map((loc) => (
+                <Marker
+                  key={loc.name}
+                  position={{ lat: loc.lat, lng: loc.lng }}
+                  icon={{
+                    url: iconwcandfood.toilets,
+                    scaledSize: new window.google.maps.Size(40, 40),
+                  }}
+                  onClick={() => setSelectedLocation({ ...loc, description: "Toilettes publiques 🚻" })}
+                />
+              ))}
 
-            {/* Buvettes */}
-            {showBuvettes && [
-              { lat: 48.88912, lng: 2.39518, name: "Buvette A" },
-              { lat: 48.8936,  lng: 2.39441, name: "Buvette B" },
-            ].map((loc) => (
-              <Marker
-                key={loc.name}
-                position={{ lat: loc.lat, lng: loc.lng }}
-                icon={{ url: iconwcandfood.buvette, scaledSize: new window.google.maps.Size(40, 40) }}
-                onClick={() => setSelectedLocation({ ...loc, description: "Buvette disponible 🍻" })}
-              />
-            ))}
+            {showBuvettes &&
+              [
+                { lat: 48.88912, lng: 2.39518, name: "Buvette A" },
+                { lat: 48.8936, lng: 2.39441, name: "Buvette B" },
+              ].map((loc) => (
+                <Marker
+                  key={loc.name}
+                  position={{ lat: loc.lat, lng: loc.lng }}
+                  icon={{
+                    url: iconwcandfood.buvette,
+                    scaledSize: new window.google.maps.Size(40, 40),
+                  }}
+                  onClick={() => setSelectedLocation({ ...loc, description: "Buvette disponible 🍻" })}
+                />
+              ))}
 
-            {/* Événements filtrés */}
             {filteredConcerts.map((loc) => (
               <Marker
                 key={loc.id}
@@ -213,14 +206,16 @@ const MapWithFilters = () => {
                 title={loc.name}
                 icon={
                   loc.iconUrl
-                    ? { url: loc.iconUrl, scaledSize: new window.google.maps.Size(40, 40) }
+                    ? {
+                        url: loc.iconUrl,
+                        scaledSize: new window.google.maps.Size(40, 40),
+                      }
                     : undefined
                 }
                 onClick={() => setSelectedLocation(loc)}
               />
             ))}
 
-            {/* InfoWindow */}
             {selectedLocation && (
               <InfoWindow
                 position={{ lat: selectedLocation.lat, lng: selectedLocation.lng }}
@@ -229,7 +224,9 @@ const MapWithFilters = () => {
                 <div>
                   <h3 className="font-bold">{selectedLocation.name}</h3>
                   <p>{selectedLocation.description}</p>
-                  <p><strong>Lieu :</strong> {selectedLocation.venueName}</p>
+                  <p>
+                    <strong>Lieu :</strong> {selectedLocation.venueName}
+                  </p>
                   {selectedLocation.url && (
                     <p>
                       <a href={selectedLocation.url} target="_blank" rel="noopener noreferrer">
