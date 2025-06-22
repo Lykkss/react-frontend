@@ -42,7 +42,7 @@ const MapWithFilters = () => {
     buvette: "https://img.icons8.com/color/48/beer.png",
   };
 
-  // Récupération de la géolocalisation utilisateur
+  // Géolocalisation utilisateur
   useEffect(() => {
     navigator.geolocation?.getCurrentPosition(
       ({ coords }) => setUserLocation({ lat: coords.latitude, lng: coords.longitude }),
@@ -50,7 +50,7 @@ const MapWithFilters = () => {
     );
   }, []);
 
-  // Chargement des lieux et événements via proxy /api/
+  // Chargement via proxy /api/
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -67,7 +67,7 @@ const MapWithFilters = () => {
     fetchData();
   }, []);
 
-  // Filtrage et mapping en markers
+  // Filtrage et mapping
   useEffect(() => {
     const result = events
       .filter((e) => {
