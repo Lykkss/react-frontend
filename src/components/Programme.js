@@ -9,9 +9,8 @@ function Programme() {
   useEffect(() => {
     const fetchEvents = async () => {
       try {
-        // Récupère l'URL de base (dev ou prod)
-        const BASE_URL = process.env.REACT_APP_API_URL;
-        const response = await fetch(`${BASE_URL}/concerts/`, {
+        // Appel relatif : Vercel proxy /api/* vers votre back
+        const response = await fetch("/api/concerts/", {
           method: "GET",
         });
 

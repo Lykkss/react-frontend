@@ -2,11 +2,8 @@ import React, { useState, useEffect } from "react";
 import { Map, APIProvider, Marker, InfoWindow } from "@vis.gl/react-google-maps";
 import axios from "axios";
 
-// Google Maps key (fallback for claves variéties)
+// Google Maps key
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API || process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
-
-// Determine base URL (dev via CRA or prod via Vercel rewrite)
-const getBaseUrl = () => process.env.REACT_APP_API_URL;
 
 export function parseLocationString(rawString) {
   if (!rawString) throw new Error("Chaîne vide");
@@ -22,7 +19,6 @@ export function parseLocationString(rawString) {
 }
 
 const MapWithFilters = () => {
-  const BASE_URL = getBaseUrl();
   const [venues, setVenues] = useState([]);
   const [events, setEvents] = useState([]);
   const [filteredConcerts, setFilteredConcerts] = useState([]);
@@ -54,13 +50,13 @@ const MapWithFilters = () => {
     );
   }, []);
 
-  // Chargement des lieux et événements via proxy
+  // Chargement des lieux et événements via proxy /api/
   useEffect(() => {
     const fetchData = async () => {
       try {
         const [vRes, eRes] = await Promise.all([
-          axios.get(`${BASE_URL}/lieux/`),
-          axios.get(`${BASE_URL}/concerts/`),
+          axios.get("/api/lieux/"),
+          axios.get("/api/concerts/"),
         ]);
         setVenues(vRes.data);
         setEvents(eRes.data);
@@ -69,7 +65,7 @@ const MapWithFilters = () => {
       }
     };
     fetchData();
-  }, [BASE_URL]);
+  }, []);
 
   // Filtrage et mapping en markers
   useEffect(() => {
