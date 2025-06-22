@@ -9,9 +9,10 @@ function Programme() {
   useEffect(() => {
     const fetchEvents = async () => {
       try {
-        const response = await fetch("/concerts/", {
+        const response = await fetch("api/concerts/", {
           method: "GET",
         });
+        console.log("Requête envoyée à l'API :", response.url);
 
         if (!response.ok) {
           throw new Error(`Erreur HTTP ! Statut : ${response.status}`);
