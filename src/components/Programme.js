@@ -16,7 +16,7 @@ function Programme() {
           );
         }
 
-        const response = await fetch(`${API_URL}/concerts/`, {
+        const response = await fetch(`/api/concerts/`, {
           method: "GET",
         });
 
