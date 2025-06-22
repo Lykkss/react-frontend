@@ -24,7 +24,6 @@ function Programme() {
           throw new Error(`Erreur HTTP ! Statut : ${response.status}`);
         }
 
-
         const contentType = response.headers.get("content-type") || "";
         if (!contentType.includes("application/json")) {
           throw new Error("La réponse de l'API n'est pas du JSON.");
