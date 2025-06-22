@@ -2,12 +2,11 @@ import React, { useState, useEffect } from "react";
 import { Map, APIProvider, Marker, InfoWindow } from "@vis.gl/react-google-maps";
 import axios from "axios";
 
+// Google Maps key (fallback for claves variéties)
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API || process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
-function getBaseUrl() {
-  // En prod via Vercel, fallback à '/api'
-  return process.env.REACT_APP_API_URL || "/api";
-}
+// Determine base URL (dev via CRA or prod via Vercel rewrite)
+const getBaseUrl = () => process.env.REACT_APP_API_URL || "/api";
 
 export function parseLocationString(rawString) {
   if (!rawString) throw new Error("Chaîne vide");
@@ -23,6 +22,7 @@ export function parseLocationString(rawString) {
 }
 
 const MapWithFilters = () => {
+  const BASE_URL = getBaseUrl();
   const [venues, setVenues] = useState([]);
   const [events, setEvents] = useState([]);
   const [filteredConcerts, setFilteredConcerts] = useState([]);
@@ -33,7 +33,6 @@ const MapWithFilters = () => {
   const [showToilettes, setShowToilettes] = useState(false);
   const [showBuvettes, setShowBuvettes] = useState(false);
 
-  const BASE_URL = getBaseUrl();
   const parisCoordinates = { lat: 48.89243438749084, lng: 2.3940741223491946 };
   const artistIcons = {
     48: "https://img.icons8.com/color/48/dj.png",
@@ -47,6 +46,7 @@ const MapWithFilters = () => {
     buvette: "https://img.icons8.com/color/48/beer.png",
   };
 
+  // Récupération de la géolocalisation utilisateur
   useEffect(() => {
     navigator.geolocation?.getCurrentPosition(
       ({ coords }) => setUserLocation({ lat: coords.latitude, lng: coords.longitude }),
@@ -54,6 +54,7 @@ const MapWithFilters = () => {
     );
   }, []);
 
+  // Chargement des lieux et événements via proxy
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -70,6 +71,7 @@ const MapWithFilters = () => {
     fetchData();
   }, [BASE_URL]);
 
+  // Filtrage et mapping en markers
   useEffect(() => {
     const result = events
       .filter((e) => {
@@ -179,13 +181,8 @@ const MapWithFilters = () => {
                 <Marker
                   key={loc.name}
                   position={{ lat: loc.lat, lng: loc.lng }}
-                  icon={{
-                    url: iconwcandfood.toilets,
-                    scaledSize: new window.google.maps.Size(40, 40),
-                  }}
-                  onClick={() =>
-                    setSelectedLocation({ ...loc, description: "Toilettes publiques 🚻" })
-                  }
+                  icon={{ url: iconwcandfood.toilets, scaledSize: new window.google.maps.Size(40, 40) }}
+                  onClick={() => setSelectedLocation({ ...loc, description: "Toilettes publiques 🚻" })}
                 />
               ))}
 
@@ -197,13 +194,8 @@ const MapWithFilters = () => {
                 <Marker
                   key={loc.name}
                   position={{ lat: loc.lat, lng: loc.lng }}
-                  icon={{
-                    url: iconwcandfood.buvette,
-                    scaledSize: new window.google.maps.Size(40, 40),
-                  }}
-                  onClick={() =>
-                    setSelectedLocation({ ...loc, description: "Buvette disponible 🍻" })
-                  }
+                  icon={{ url: iconwcandfood.buvette, scaledSize: new window.google.maps.Size(40, 40) }}
+                  onClick={() => setSelectedLocation({ ...loc, description: "Buvette disponible 🍻" })}
                 />
               ))}
 
@@ -212,35 +204,19 @@ const MapWithFilters = () => {
                 key={loc.id}
                 position={{ lat: loc.lat, lng: loc.lng }}
                 title={loc.name}
-                icon={
-                  loc.iconUrl
-                    ? {
-                        url: loc.iconUrl,
-                        scaledSize: new window.google.maps.Size(40, 40),
-                      }
-                    : undefined
-                }
+                icon={loc.iconUrl ? { url: loc.iconUrl, scaledSize: new window.google.maps.Size(40, 40) } : undefined}
                 onClick={() => setSelectedLocation(loc)}
               />
             ))}
 
             {selectedLocation && (
-              <InfoWindow
-                position={{ lat: selectedLocation.lat, lng: selectedLocation.lng }}
-                onCloseClick={() => setSelectedLocation(null)}
-              >
+              <InfoWindow position={{ lat: selectedLocation.lat, lng: selectedLocation.lng }} onCloseClick={() => setSelectedLocation(null)}>
                 <div>
                   <h3 className="font-bold">{selectedLocation.name}</h3>
                   <p>{selectedLocation.description}</p>
-                  <p>
-                    <strong>Lieu :</strong> {selectedLocation.venueName}
-                  </p>
+                  <p><strong>Lieu :</strong> {selectedLocation.venueName}</p>
                   {selectedLocation.url && (
-                    <p>
-                      <a href={selectedLocation.url} target="_blank" rel="noopener noreferrer">
-                        En savoir plus
-                      </a>
-                    </p>
+                    <p><a href={selectedLocation.url} target="_blank" rel="noopener noreferrer">En savoir plus</a></p>
                   )}
                 </div>
               </InfoWindow>
