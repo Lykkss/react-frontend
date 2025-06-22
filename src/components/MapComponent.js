@@ -54,8 +54,8 @@ const MapWithFilters = () => {
     const fetchData = async () => {
       try {
         const [vRes, eRes] = await Promise.all([
-          axios.get(`${API_URL}/lieux/`),
-          axios.get(`${API_URL}/concerts/`),
+          axios.get(`/api/lieux/`),
+          axios.get(`/api/concerts/`),
         ]);
         setVenues(vRes.data);
         setEvents(eRes.data);
