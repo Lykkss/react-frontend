@@ -9,8 +9,7 @@ function Programme() {
   useEffect(() => {
     const fetchEvents = async () => {
       try {
-        // → on appelle maintenant le rewrite Vercel en HTTPS
-        const response = await fetch("/api/concerts/", {
+        const response = await fetch("/concerts/", {
           method: "GET",
         });
 
