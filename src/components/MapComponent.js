@@ -2,22 +2,12 @@ import React, { useState, useEffect } from "react";
 import { Map, APIProvider, Marker, InfoWindow } from "@vis.gl/react-google-maps";
 import axios from "axios";
 
-const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API;
-const API_URL = process.env.REACT_APP_API_URL;
-const parisCoordinates = { lat: 48.89243438749084, lng: 2.3940741223491946 };
+const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API || process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
-const artistIcons = {
-  48: "https://img.icons8.com/color/48/dj.png",
-  50: "https://img.icons8.com/color/48/rock-music.png",
-  71: "https://img.icons8.com/emoji/48/musical-note-emoji.png",
-  63: "https://img.icons8.com/color/48/orchestra.png",
-  69: "https://img.icons8.com/color/48/music.png",
-};
-
-const iconwcandfood = {
-  toilets: "https://img.icons8.com/ios-filled/50/wc.png",
-  buvette: "https://img.icons8.com/color/48/beer.png",
-};
+function getBaseUrl() {
+  // En prod via Vercel, fallback à '/api'
+  return process.env.REACT_APP_API_URL || "/api";
+}
 
 export function parseLocationString(rawString) {
   if (!rawString) throw new Error("Chaîne vide");
@@ -33,15 +23,29 @@ export function parseLocationString(rawString) {
 }
 
 const MapWithFilters = () => {
-  const [venues, setVenues]                       = useState([]);
-  const [events, setEvents]                       = useState([]);
-  const [filteredConcerts, setFilteredConcerts]   = useState([]);
-  const [selectedLocation, setSelectedLocation]   = useState(null);
-  const [userLocation, setUserLocation]           = useState(null);
-  const [venueFilter, setVenueFilter]             = useState("all");
-  const [dateFilter, setDateFilter]               = useState("");
-  const [showToilettes, setShowToilettes]         = useState(false);
-  const [showBuvettes, setShowBuvettes]           = useState(false);
+  const [venues, setVenues] = useState([]);
+  const [events, setEvents] = useState([]);
+  const [filteredConcerts, setFilteredConcerts] = useState([]);
+  const [selectedLocation, setSelectedLocation] = useState(null);
+  const [userLocation, setUserLocation] = useState(null);
+  const [venueFilter, setVenueFilter] = useState("all");
+  const [dateFilter, setDateFilter] = useState("");
+  const [showToilettes, setShowToilettes] = useState(false);
+  const [showBuvettes, setShowBuvettes] = useState(false);
+
+  const BASE_URL = getBaseUrl();
+  const parisCoordinates = { lat: 48.89243438749084, lng: 2.3940741223491946 };
+  const artistIcons = {
+    48: "https://img.icons8.com/color/48/dj.png",
+    50: "https://img.icons8.com/color/48/rock-music.png",
+    71: "https://img.icons8.com/emoji/48/musical-note-emoji.png",
+    63: "https://img.icons8.com/color/48/orchestra.png",
+    69: "https://img.icons8.com/color/48/music.png",
+  };
+  const iconwcandfood = {
+    toilets: "https://img.icons8.com/ios-filled/50/wc.png",
+    buvette: "https://img.icons8.com/color/48/beer.png",
+  };
 
   useEffect(() => {
     navigator.geolocation?.getCurrentPosition(
@@ -54,8 +58,8 @@ const MapWithFilters = () => {
     const fetchData = async () => {
       try {
         const [vRes, eRes] = await Promise.all([
-          axios.get(`/api/lieux/`),
-          axios.get(`/api/concerts/`),
+          axios.get(`${BASE_URL}/lieux/`),
+          axios.get(`${BASE_URL}/concerts/`),
         ]);
         setVenues(vRes.data);
         setEvents(eRes.data);
@@ -64,7 +68,7 @@ const MapWithFilters = () => {
       }
     };
     fetchData();
-  }, []);
+  }, [BASE_URL]);
 
   useEffect(() => {
     const result = events
@@ -89,7 +93,7 @@ const MapWithFilters = () => {
             description: `🎤 ${e.title}`,
             venueName: venueObj.name,
             url: e.url,
-            iconUrl: artistIcons[e.id],  // <-- URL de l'icône
+            iconUrl: artistIcons[e.id],
           };
         } catch {
           return null;
@@ -179,7 +183,9 @@ const MapWithFilters = () => {
                     url: iconwcandfood.toilets,
                     scaledSize: new window.google.maps.Size(40, 40),
                   }}
-                  onClick={() => setSelectedLocation({ ...loc, description: "Toilettes publiques 🚻" })}
+                  onClick={() =>
+                    setSelectedLocation({ ...loc, description: "Toilettes publiques 🚻" })
+                  }
                 />
               ))}
 
@@ -195,7 +201,9 @@ const MapWithFilters = () => {
                     url: iconwcandfood.buvette,
                     scaledSize: new window.google.maps.Size(40, 40),
                   }}
-                  onClick={() => setSelectedLocation({ ...loc, description: "Buvette disponible 🍻" })}
+                  onClick={() =>
+                    setSelectedLocation({ ...loc, description: "Buvette disponible 🍻" })
+                  }
                 />
               ))}
 

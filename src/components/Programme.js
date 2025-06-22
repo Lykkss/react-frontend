@@ -2,21 +2,16 @@ import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
 function Programme() {
-  const [events, setEvents]   = useState([]);
+  const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError]     = useState(null);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchEvents = async () => {
       try {
-        const API_URL = process.env.REACT_APP_API_URL;
-        if (!API_URL) {
-          throw new Error(
-            "La variable d'environnement REACT_APP_API_URL n'est pas définie."
-          );
-        }
-
-        const response = await fetch(`/api/concerts/`, {
+        // Récupère l'URL de base (dev ou prod)
+        const BASE_URL = process.env.REACT_APP_API_URL || "/api";
+        const response = await fetch(`${BASE_URL}/concerts/`, {
           method: "GET",
         });
 
@@ -80,9 +75,7 @@ function Programme() {
           </p>
         )}
         {error && (
-          <p role="alert" className="text-center text-red-500">
-            {error}
-          </p>
+          <p role="alert" className="text-center text-red-500">{error}</p>
         )}
 
         {!loading && !error && (
@@ -94,9 +87,8 @@ function Programme() {
               Liste des événements
             </h2>
             {events.map((event) => {
-              // on récupère DateStart/DateEnd s'ils existent, sinon on tombe sur null
               const startDate = parseDate(event.DateStart || event.start_date);
-              const endDate   = parseDate(event.DateEnd   || event.end_date);
+              const endDate = parseDate(event.DateEnd || event.end_date);
 
               return (
                 <article
@@ -112,40 +104,32 @@ function Programme() {
                     {event.title || "Titre non disponible"}
                   </h3>
 
-                  {/* Date de début */}
                   {startDate ? (
                     <p className="text-gray-600">
-                      Date de début :{" "}
+                      Date de début :{' '}
                       <time dateTime={startDate.toISOString()}>
-                        {startDate.toLocaleString("fr-FR")}
+                        {startDate.toLocaleString('fr-FR')}
                       </time>
                     </p>
                   ) : (
-                    <p className="text-gray-600">
-                      Date de début : Non spécifiée
-                    </p>
+                    <p className="text-gray-600">Date de début : Non spécifiée</p>
                   )}
 
-                  {/* Date de fin */}
                   {endDate ? (
                     <p className="text-gray-600">
-                      Date de fin :{" "}
+                      Date de fin :{' '}
                       <time dateTime={endDate.toISOString()}>
-                        {endDate.toLocaleString("fr-FR")}
+                        {endDate.toLocaleString('fr-FR')}
                       </time>
                     </p>
                   ) : (
-                    <p className="text-gray-600">
-                      Date de fin : Non spécifiée
-                    </p>
+                    <p className="text-gray-600">Date de fin : Non spécifiée</p>
                   )}
 
                   <Link
                     to={`/groupe/${event.id}`}
                     className="mt-4 inline-block text-indigo-900 hover:underline focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                    aria-label={`Voir plus d’informations sur ${
-                      event.title || "cet événement"
-                    }`}
+                    aria-label={`Voir plus d’informations sur ${event.title || 'cet événement'}`}
                   >
                     Voir plus
                   </Link>
