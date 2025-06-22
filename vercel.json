@@ -3,10 +3,6 @@
     {
       "source": "/api/:path*",
       "destination": "http://158.69.54.81:8500/:path*"
-    },
-    {
-      "source": "/api/proxy/:path*",
-      "destination": "http://158.69.54.81:84/wp-json/tribe/events/v1/:path*"
     }
   ]
 }

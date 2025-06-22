@@ -9,7 +9,7 @@ function Programme() {
   useEffect(() => {
     const fetchEvents = async () => {
       try {
-        const response = await fetch("api/concerts/", {
+        const response = await fetch("/api/concerts/", {
           method: "GET",
         });
         console.log("Requête envoyée à l'API :", response.url);
