@@ -10,7 +10,7 @@ function Programme() {
     const fetchEvents = async () => {
       try {
         // Récupère l'URL de base (dev ou prod)
-        const BASE_URL = process.env.REACT_APP_API_URL || "/api";
+        const BASE_URL = process.env.REACT_APP_API_URL;
         const response = await fetch(`${BASE_URL}/concerts/`, {
           method: "GET",
         });

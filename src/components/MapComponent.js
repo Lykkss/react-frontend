@@ -6,7 +6,7 @@ import axios from "axios";
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API || process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
 // Determine base URL (dev via CRA or prod via Vercel rewrite)
-const getBaseUrl = () => process.env.REACT_APP_API_URL || "/api";
+const getBaseUrl = () => process.env.REACT_APP_API_URL;
 
 export function parseLocationString(rawString) {
   if (!rawString) throw new Error("Chaîne vide");
